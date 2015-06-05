@@ -1,0 +1,16 @@
+Version 1.0.1 (2015-02-12)
+--------------------------
+
+Fixed an issue where the runcard would not reload when updated. Thanks to 
+Andrew Horsley and Baptiste Allard for spotting this.
+
+Changed a few of the defaut options in the sample runcards.
+
+Changed the position of the licence and Notice files to top level, as is
+considered preferable by the licence guidlines.
+
+Changes uncertainty settings in RRFittingRoutine.py. Initial parameter values
+no longer can be in disallowed regions (e.g. no negative abundances).
+
+Inreased the number of initial points for the RR routine when fitting
+magnetic field. This is due to magnetic field being harder to fit.
