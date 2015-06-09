@@ -1,4 +1,4 @@
-ElecSus v1.0.1
+ElecSus
 --------------
 
 A program to calculate the electric susceptibility of an atomic ensemble.
@@ -7,10 +7,26 @@ of thermal alkali metal vapour cells. The program also includes fitting
 routines which allow experimental parameters to be extracted from 
 experimental spectroscopic data.
 
-Prerequisits
-------------
+An academic paper detailing the physics behind this code is available from
+http://dx.doi.org/10.1016/j.cpc.2014.11.023
+or the pre-print is available here
+http://arxiv.org/abs/1409.1873
 
-Must have the python programming language installed with the following 
+Authors
+-------
+
+Mark A. Zentile
+James Keaveney
+Lee Weller
+Daniel J. Whiting
+Charles S. Adams
+Ifan G. Hughes
+
+
+Prerequisites
+-------------
+
+Must have python installed with the following 
 packages:
 
 - Scipy version 0.12.0 or later
@@ -25,7 +41,7 @@ Unpack the archived file (.zip or .tar.gz)
 Usage
 -----
 
-- Open a terminal window and move to the directory where the files
+- Open a terminal/command line window and move to the directory where the files
   have been extracted to.
 
 - to run the program taking parameters from runcard.py type
