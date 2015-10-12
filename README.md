@@ -1,5 +1,5 @@
 ==============
-ElecSus v2.0.0
+ElecSus v2.0.1
 ==============
 
 A program to calculate the electric susceptibility of an atomic ensemble.
@@ -9,7 +9,7 @@ routines which allow experimental parameters to be extracted from
 experimental spectroscopic data.
 
 --------------------
-New in version 2.0.0
+New in version 2.0
 --------------------
 
 	-	Significantly improved user-friendliness in the form of a 
@@ -140,3 +140,11 @@ License
 
 All the files distributed with this program are provided subject to the
 Apache License, Version 2.0. A Copy of the license is provided.
+
+-----------
+Change Log
+-----------
+
+V 2.0.1
+
+	- Updated Eigensystem.py with correct fine structure constant for Rb.

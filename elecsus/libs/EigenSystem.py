@@ -125,7 +125,7 @@ class Hamiltonian(object):
         """Function to produce the excited state manifold"""
         dp = int(3*(2*S+1)*(2*I+1))  # total dimension of matrix
         # The actual value of FS is unimportant.
-        FS = 250000.0      # Fine structure splitting, useful for debugging
+        FS = 7.123e6       # Fine structure splitting (of Rb - careful when using other elements at high B fields)
         Ap = A_hyp_coeff
         Bp = B_hyp_coeff
         # Add P-term fine and hyperfine interactions
