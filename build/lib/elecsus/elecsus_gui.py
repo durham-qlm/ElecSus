@@ -1,6 +1,22 @@
+# Copyright 2014 M. A. Zentile, J. Keaveney, L. Weller, D. Whiting,
+# C. S. Adams and I. G. Hughes.
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """
 
 ElecSus GUI
+v1.0.0 (2015-09-03)
+
 
 A GUI based on wxpython for ElecSus, intended to augment/replace the 
 runcard method of calling ElecSus.
@@ -553,7 +569,7 @@ class PlotToolPanel(wx.Panel):
 		mainwin.canvases.append(self.canvas)
 
 		# display some text in the middle of the window to begin with
-		self.fig.text(0.5,0.5,'ElecSus GUI\n\nVersion 0.9.2\n\nTo get started, use the panel on the right\nto either Compute a spectrum or Import some data...', ha='center',va='center')
+		self.fig.text(0.5,0.5,'ElecSus GUI\n\nVersion 1.0.0\n\nTo get started, use the panel on the right\nto either Compute a spectrum or Import some data...', ha='center',va='center')
 		self.fig.hold(False)
 		
 		self.SetSizer(plot_sizer)

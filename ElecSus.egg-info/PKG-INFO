@@ -1,13 +1,13 @@
 Metadata-Version: 1.1
 Name: ElecSus
-Version: 2.0.0rc1
+Version: 2.0.1
 Summary: (Atomic Physics) Calculate the weak-probe electric susceptibility for alkali-metal vapours
 Home-page: https://github.com/jameskeaveney/ElecSus
 Author: James Keaveney, Mark Zentile et. al.
 Author-email: james.keaveney@durham.ac.uk
 License: Apache License, Version 2.0
 Description: ==============
-        ElecSus v2.0.0
+        ElecSus v2.0.1
         ==============
         
         A program to calculate the electric susceptibility of an atomic ensemble.
@@ -17,7 +17,7 @@ Description: ==============
         experimental spectroscopic data.
         
         --------------------
-        New in version 2.0.0
+        New in version 2.0
         --------------------
         
         	-	Significantly improved user-friendliness in the form of a 
@@ -149,6 +149,13 @@ Description: ==============
         All the files distributed with this program are provided subject to the
         Apache License, Version 2.0. A Copy of the license is provided.
         
+        -----------
+        Change Log
+        -----------
+        
+        V 2.0.1
+        
+        	- Updated Eigensystem.py with correct fine structure constant for Rb.
 Platform: UNKNOWN
 Classifier: Development Status :: 1 - Planning
 Classifier: Intended Audience :: Science/Research
