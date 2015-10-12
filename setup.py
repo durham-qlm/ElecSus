@@ -30,7 +30,7 @@ setup(
 							'docs/ElecSus_GUI_UserGuide.pdf', 
 							'docs/Manual.pdf']},
 	license='Apache License, Version 2.0',
-	long_description=open('README.txt').read(),
+	long_description=open('README.md').read(),
 	install_requires=[
 		#'wxPython == 2.8.11.0' ### wxPython is needed but can't be installed from PyPi.
 		'numpy',
