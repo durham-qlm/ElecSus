@@ -78,7 +78,17 @@ packages:
 Installation
 ------------
 
-Unzip the elecsus.zip file << to update with pip install info >>
+Python and required packages must be installed prior to installing ElecSus.
+
+	- Download the zip file and extract the ElecSus directory.
+
+	- For windows, there are pre-built binaries which will install ElecSus for you. Simply double click on the installer exe/msi file and follow the instructions.
+	
+	- For linux-based systems, download or clone this repository and navigate to the download location in a terminal window. Install using the setup.py file by typing
+		
+		python setup.py install
+	
+	- Note the GUI part of ElecSus is currently untested on Mac OSX!
 
 -----
 Usage
