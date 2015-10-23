@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-noticestring = 'ElecSus v2.0.1 (Last updated 2015-10-12)\n\n\
+noticestring = 'ElecSus v2.0.2 (Last updated 2015-10-23)\n\n\
 Distributed under the Apache License, Version 2.0.\n\n\
 If the use of this program has contributed to a publication please cite: \n\
 M. A. Zentile et al., Comp. Phys. Commun. 189, p162-174 (2015)'

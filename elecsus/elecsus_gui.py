@@ -1115,9 +1115,10 @@ class ElecSus_GUI_Frame(wx.Frame):
 		show_IxIy = self.showTplotsSubMenu.AppendCheckItem(id_IxIy,"&Ix/Iy")
 		show_alpha = self.showTplotsSubMenu.AppendCheckItem(id_alpha,"&Alpha +/-")
 		show_n = self.showTplotsSubMenu.AppendCheckItem(id_n,"&Refractive Index +/-")
+		show_ng = self.showTplotsSubMenu.AppendCheckItem(id_n,"&Group Index +/-")
 		show_phi = self.showTplotsSubMenu.AppendCheckItem(id_phi,"&Phi (Rotation Angle)")
 		# bind event to check box selections
-		for checkitem in [show_S0, show_S1, show_S2, show_S3, show_IxIy, show_alpha, show_n, show_phi]:
+		for checkitem in [show_S0, show_S1, show_S2, show_S3, show_IxIy, show_alpha, show_n, show_ng, show_phi]:
 			self.Bind(wx.EVT_MENU, self.OnShowTplots, checkitem)
 		# add to parent menu
 		tpM_showTplots = theoryplotMenu.AppendMenu(wx.ID_ANY,"&Theory Curves to Show", self.showTplotsSubMenu)
@@ -1138,9 +1139,10 @@ class ElecSus_GUI_Frame(wx.Frame):
 		show_IxIy = self.showEplotsSubMenu.AppendCheckItem(id_IxIy,"&Ix/Iy")
 		show_alpha = self.showEplotsSubMenu.AppendCheckItem(id_alpha,"&Alpha +/-")
 		show_n = self.showEplotsSubMenu.AppendCheckItem(id_n,"&Refractive Index +/-")
+		show_ng = self.showEplotsSubMenu.AppendCheckItem(id_n,"&Group Index +/-")
 		show_phi = self.showEplotsSubMenu.AppendCheckItem(id_phi,"&Phi (Rotation Angle)")
 		# bind event to check box selections
-		for checkitem in [show_S0, show_S1, show_S2, show_S3, show_IxIy, show_alpha, show_n, show_phi]:
+		for checkitem in [show_S0, show_S1, show_S2, show_S3, show_IxIy, show_alpha, show_n, show_ng, show_phi]:
 			self.Bind(wx.EVT_MENU, self.OnShowEplots, checkitem)
 		# add to parent menu
 		tpM_showEplots = theoryplotMenu.AppendMenu(wx.ID_ANY,"&Experimental Curves to Show", self.showEplotsSubMenu)
