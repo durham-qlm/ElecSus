@@ -1,5 +1,5 @@
 ==============
-ElecSus v2.0.1
+ElecSus v2.0.2
 ==============
 
 A program to calculate the electric susceptibility of an atomic ensemble.
@@ -145,6 +145,10 @@ Apache License, Version 2.0. A Copy of the license is provided.
 Change Log
 -----------
 
+V 2.0.2
+
+	- Minor bug fix for the GUI - fixed an issue where the Phi plots would not be plotted
+	
 V 2.0.1
 
 	- Updated Eigensystem.py with correct fine structure constant for Rb.

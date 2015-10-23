@@ -33,7 +33,7 @@ setup(
 	author='James Keaveney, Mark Zentile et. al.',
 	author_email='james.keaveney@durham.ac.uk',
 	url='https://github.com/jameskeaveney/ElecSus',	
-	version='2.0.1',
+	version='2.0.2',
 	packages=['elecsus', 'elecsus.libs', 'elecsus.runcard'],
 	package_data={'elecsus':['images/elecsus_group.ico',
 							'images/elecsus_t_group.ico',

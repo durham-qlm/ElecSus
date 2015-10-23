@@ -15,6 +15,9 @@
 """
 
 ElecSus GUI
+
+v1.0.1 (2015-10-23)
+	-- minor bug fix where the plot selection popups would not display the Phi plots
 v1.0.0 (2015-09-03)
 
 
@@ -179,7 +182,7 @@ class PlotSelectionPopUp(wx.PopupTransientWindow):
 		"""
 		if self.plottype == 'Theory':
 			items = self.selection.GetChecked()
-			self.mainwin.display_theory_curves = [False]*8
+			self.mainwin.display_theory_curves = [False]*9
 			for menuitem in self.mainwin.showTplotsSubMenu.GetMenuItems():
 				menuitem.Check(False)
 			for item in items:
@@ -188,7 +191,7 @@ class PlotSelectionPopUp(wx.PopupTransientWindow):
 			print self.mainwin.display_theory_curves
 		elif self.plottype == 'Fit':
 			items = self.selection.GetChecked()
-			self.mainwin.display_expt_curves = [False]*8
+			self.mainwin.display_expt_curves = [False]*9
 			for menuitem in self.mainwin.showEplotsSubMenu.GetMenuItems():
 				menuitem.Check(False)
 			for item in items:
@@ -569,7 +572,7 @@ class PlotToolPanel(wx.Panel):
 		mainwin.canvases.append(self.canvas)
 
 		# display some text in the middle of the window to begin with
-		self.fig.text(0.5,0.5,'ElecSus GUI\n\nVersion 1.0.0\n\nTo get started, use the panel on the right\nto either Compute a spectrum or Import some data...', ha='center',va='center')
+		self.fig.text(0.5,0.5,'ElecSus GUI\n\nVersion 1.0.1\n\nTo get started, use the panel on the right\nto either Compute a spectrum or Import some data...', ha='center',va='center')
 		self.fig.hold(False)
 		
 		self.SetSizer(plot_sizer)
