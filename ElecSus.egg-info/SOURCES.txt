@@ -43,3 +43,5 @@ elecsus/runcard/runcard_D2sample.py
 elecsus/sample_data/SampleDataRbD1.csv
 elecsus/sample_data/SampleData_Ix_RbD2.csv
 elecsus/sample_data/SampleData_S1_RbD2.csv
+elecsus/sample_data/SampleDataRbD1_output/SampleDataRbD1_residuals.csv
+elecsus/sample_data/SampleDataRbD1_output/SampleDataRbD1_theory.csv

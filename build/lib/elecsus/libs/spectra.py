@@ -31,6 +31,8 @@ from tools import derivative
 import EigenSystem as ES
 import AtomConstants as AC
 
+import time
+
 def FreqStren(groundLevels,excitedLevels,groundDim,
               excitedDim,Dline,precision,hand):
     transitionFrequency = zeros(groundDim*2*groundDim) #Initialise lists
@@ -63,6 +65,7 @@ def add_voigt(
         d,DoppTemp,atomMass,wavenumber,gamma,voigtwidth,
         precision,ltransno,lenergy,lstrength,rtransno,
         renergy,rstrength):
+   
     xpts = len(d)
     npts = 2*voigtwidth+1
     detune = 2.0*pi*1.0e6*(arange(npts)-voigtwidth)*precision #Angular detuning
@@ -97,7 +100,6 @@ def spectrum(
         theta0=0,Pol=0.5,shift=0,GammaBuf=0,Constrain=1,Dline='D2',precision=10,
         K40frac=0,K41frac=0):
 
-				
     """Returns a spectrum as a numpy array
 
     Arguments:
@@ -120,8 +122,6 @@ def spectrum(
     K41frac    -- percentage of potassium-41 atoms
     """
 
-    
-
     print '.', # Print a dot to show the user that the program hasn't crashed
 
     #Change units to more useful ones
@@ -143,6 +143,7 @@ def spectrum(
         Bfield = 0.0001 #To avoid degeneracy problem at B = 0.
 
     # Rubidium energy levels
+    
     if Elem=='Rb':
         rb87frac=1.0-rb85frac  # Rubidium-87 fraction
         if rb85frac!=0.0: #Save time if no rubidium-85 required
@@ -329,6 +330,7 @@ def spectrum(
     dipole = transitionConst.dipoleStrength
     prefactor=2.0*NDensity*dipole*dipole/(hbar*e0)
 
+    
     if Elem=='Rb':
         if rb85frac!=0.0:
             lab85, ldisp85, rab85, rdisp85 = add_voigt(d,DoppTemp,
@@ -449,7 +451,7 @@ def spectrum(
     total_n_Right = sqrt(1.0+totalChiRight) #Complex refractive index right hand
 
     # Return user specified spectrum
-    if StokesType in ('S0', 'Transmission', 'Transmission (S0)'):
+    if StokesType in ['S0', 'Transmission', 'Transmission (S0)']:
         TransLeft = exp(-2.0*total_n_Left.imag*wavenumber*lcell)
         TransRight = exp(-2.0*total_n_Right.imag*wavenumber*lcell)
         return (Pol*TransLeft) + ((1.0-Pol)*TransRight)

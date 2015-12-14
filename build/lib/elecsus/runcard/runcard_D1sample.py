@@ -41,13 +41,13 @@ Spectrum = 'S0'       #          'S2' similar to S1,
                       #          'GI-' Sigma- group index.
 
 #Do you want to fit to experiment or just a theoretical presiction?
-FitType = 'RR'        # Choices: 'T' for just theory (later fitting options ignored)
+FitType = 'ML'        # Choices: 'T' for just theory (later fitting options ignored)
                       #          'ML' for Marquardt-Levenberg fit (standard fitting)
                       #          'RR' for Random restart (3 or more fit parameters)
                       #          'SA' for Simulated annealing (many parameters) 
 
 #Experimental data file name?
-DataFilename = 'SampleDataRbD1' #For theory plots this is only used as a label for the data.
+DataFilename = 'sample_data/SampleDataRbD1' #For theory plots this is only used as a label for the data.
 
 #### Essential cell parameters ####
 ###################################
@@ -86,7 +86,7 @@ Shift = 0.0            #Global shift from linecentre in MHz
 ShiftBool = False      #Choose whether to fit or not (True or False)
 
 #Extra lorentzian broadening (buffer gas etc.)
-Gamma = 20.0           #Lorentzian width due to buffer gas, in MHz
+Gamma = 0           #Lorentzian width due to buffer gas, in MHz
 GammaBool = True       #Choose whether to fit or not (True or False)
 
 #Doppler temperature
@@ -113,11 +113,11 @@ K40 = 0.0117
 #########################
 
 #Precision to which the theoretical calulation is performed in MHz.
-Precision  = 10.0      #10.0 is recommended.
+Precision  = 10.      #10.0 is recommended.
 
 #Smooth input data? (True or False)  (NOT true or false)
 SmoothBool = True      #Not important for theory only.
-SmoothFactor = 19      #Number of local points to average over (must be an odd number)
+SmoothFactor = 31      #Number of local points to average over (must be an odd number)
 
 #Detuning range and offset (not looked at if experimental data is fitted to)
 DetStart = -10.0       #Detuning start value in GHz
