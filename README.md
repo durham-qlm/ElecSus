@@ -1,5 +1,5 @@
 ==============
-ElecSus v2.0.2
+ElecSus v2.0.3
 ==============
 
 A program to calculate the electric susceptibility of an atomic ensemble.
@@ -59,7 +59,6 @@ New in version 2.0
 		across any one part is negligible. Spectroscopic quantities can be calculated from the electric
 		field vector by using Jones matrices.
 		
-		<< add example for magnetic field calculation? >>
 
 -------------
 Prerequisites
@@ -155,6 +154,10 @@ Apache License, Version 2.0. A Copy of the license is provided.
 Change Log
 -----------
 
+V 2.0.3
+
+	- Bug fix for the runcard method of using ElecSus. Now supports runcards in directories other than the local directory.
+	
 V 2.0.2
 
 	- Minor bug fix for the GUI - fixed an issue where the Phi plots would not be plotted
