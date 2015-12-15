@@ -33,7 +33,6 @@ elecsus/libs/numberDensityEqs.py
 elecsus/libs/preamble.py
 elecsus/libs/runcardCheck.py
 elecsus/libs/spectra.py
-elecsus/libs/spectraEfield.py
 elecsus/libs/sz_lsi.py
 elecsus/libs/tools.py
 elecsus/runcard/runcard.py

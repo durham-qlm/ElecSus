@@ -31,9 +31,9 @@ Requirements:
 	versions unknown, 
 	
 	tested on:
-	Windows 8.1
+	Windows 8.1, Windows 10
 		python 2.7.6 - 64-bit
-		wxpython 3.0.2.0
+		wxpython 2.8.x
 		matplotlib 1.4.3
 		numpy 1.9.2
 		scipy 0.15.1
@@ -99,7 +99,6 @@ FitCompleteEvent, EVT_FIT_COMPLETE = wx.lib.newevent.NewEvent()
 
 # import elecsus modules
 import elecsus_methods as elecsus
-from libs import spectra
 from libs import NOTICE
 from libs import data_proc
 from libs.durhamcolours import *

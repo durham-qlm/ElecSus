@@ -106,6 +106,7 @@ def MLfit(xdata,ydata,initParams,paramBools,verbose=False,**kw):
 	
     spectr = ForFit(x,*Popt)
     if verbose: print 'Spectrum generated'
+    #print 'Len spectra: ',len(spectr)
 	
     bestFitParams = list(initParams)
 	

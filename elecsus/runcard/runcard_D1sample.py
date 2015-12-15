@@ -41,7 +41,7 @@ Spectrum = 'S0'       #          'S2' similar to S1,
                       #          'GI-' Sigma- group index.
 
 #Do you want to fit to experiment or just a theoretical presiction?
-FitType = 'RR'        # Choices: 'T' for just theory (later fitting options ignored)
+FitType = 'ML'        # Choices: 'T' for just theory (later fitting options ignored)
                       #          'ML' for Marquardt-Levenberg fit (standard fitting)
                       #          'RR' for Random restart (3 or more fit parameters)
                       #          'SA' for Simulated annealing (many parameters) 

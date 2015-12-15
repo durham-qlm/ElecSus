@@ -1,13 +1,13 @@
 Metadata-Version: 1.1
 Name: ElecSus
-Version: 2.0.2
+Version: 2.1.0
 Summary: (Atomic Physics) Calculate the weak-probe electric susceptibility for alkali-metal vapours
 Home-page: https://github.com/jameskeaveney/ElecSus
 Author: James Keaveney, Mark Zentile et. al.
 Author-email: james.keaveney@durham.ac.uk
 License: Apache License, Version 2.0
 Description: ==============
-        ElecSus v2.0.2
+        ElecSus v2.1.0
         ==============
         
         A program to calculate the electric susceptibility of an atomic ensemble.
@@ -67,7 +67,6 @@ Description: ==============
         		across any one part is negligible. Spectroscopic quantities can be calculated from the electric
         		field vector by using Jones matrices.
         		
-        		<< add example for magnetic field calculation? >>
         
         -------------
         Prerequisites
@@ -86,7 +85,17 @@ Description: ==============
         Installation
         ------------
         
-        Unzip the elecsus.zip file << to update with pip install info >>
+        Python and required packages must be installed prior to installing ElecSus.
+        
+        	- Download the zip file and extract the ElecSus directory.
+        
+        	- For windows, there are pre-built binaries which will install ElecSus for you. Simply double click on the installer exe/msi file and follow the instructions.
+        	
+        	- For linux-based systems, download or clone this repository and navigate to the download location in a terminal window. Install using the setup.py file by typing
+        		
+        		python setup.py install
+        	
+        	- Note the GUI part of ElecSus is currently untested on Mac OSX!
         
         -----
         Usage
@@ -153,6 +162,14 @@ Description: ==============
         Change Log
         -----------
         
+        V 2.1.0
+        
+        	- Cleaned up a lot of code in the spectra.py module. Added new methods (calc_chi, get_spectra) to spectra.py that allow users to easily create wrapper methods to return custom data types that aren't returned by default. Separated the method to calculate electric field propagation (get_Efield), for use with non-uniform B fields. Backward compatibility is preserved with the spectrum() method, which is now just a wrapper for get_spectra().
+        	
+        V 2.0.3
+        
+        	- Bug fix for the runcard method of using ElecSus. Now supports runcards in directories other than the local directory.
+        	
         V 2.0.2
         
         	- Minor bug fix for the GUI - fixed an issue where the Phi plots would not be plotted

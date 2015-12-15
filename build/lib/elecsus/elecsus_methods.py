@@ -36,7 +36,7 @@ from shutil import copyfile
 from numpy import arange, zeros, array, sqrt
 
 # import elecsus modules
-from libs import spectraEfield
+from libs import spectra
 from libs import runcardCheck
 from libs.tools import fileOutput, plotOutput, smoother, read_in_twoColumn
 from libs.numberDensityEqs import *
@@ -65,14 +65,14 @@ def calculate(detuning_range, p, OutputType='All'):
 	S0,S1,S2,S3,Ix,Iy,nplus,nminus,phi,alphaplus,alphaminus
 	
 	"""
-	startTime = timing()
-	spec_data = spectraEfield.spectrum(detuning_range, # convert to MHz
+	#startTime = timing()
+	spec_data = spectra.spectrum(detuning_range, # convert to MHz
 					Elem=p[0], Dline=p[1], Bfield=p[2], T=p[3], lcell=p[4],
 					rb85frac=p[5], DoppTemp=p[6], theta0=p[7], Pol=p[8], shift=p[9],
 					GammaBuf=p[10], Constrain=p[11], K40frac=p[12], K41frac=p[13],
 					OutputType=OutputType)
 	
-	print 'Time taken (Calculation only):', timing() - startTime
+	#print 'Time taken (Calculation only):', timing() - startTime
 
 	return spec_data
 	
@@ -110,22 +110,22 @@ def fit_data(data,parameters,paramBoolList,experimental_datatype='S0',fit_algori
 	parameters_new[13] = 10
 	parameters_new[14:] = parameters[12:]
 	
-	print parameters_new
+	#print parameters_new
 	
 	
 	startTime = timing()
 	xdata, ydata = data
-	print xdata, ydata
-	print type(xdata), type(ydata)
+	#print xdata, ydata
+	#print type(xdata), type(ydata)
 	
 	
 	# Call different fitting routines        
 	if fit_algorithm == 'Marquardt-Levenberg':
-		#print '\nPerfoming Marquardt-Levenberg fitting routine.'
+		print '\nPerfoming Marquardt-Levenberg fitting routine.'
 		optParams, Spec = ML.MLfit(xdata,ydata,parameters_new,
 												 paramBoolList,**kw)
 	elif fit_algorithm == 'Simulated Annealing':
-		#print '\nPerforming fitting by simulated annealing.'
+		print '\nPerforming fitting by simulated annealing.'
 		optParams, Spec = SA.SAFit(xdata,ydata,parameters_new,
 												 paramBoolList,**kw)
 	else:
