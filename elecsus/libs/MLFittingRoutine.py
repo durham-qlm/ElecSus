@@ -23,15 +23,17 @@ Updated 20/08/2015
 from numpy import array
 from scipy.optimize import curve_fit
 
-def MLfit(xdata,ydata,initParams,paramBools,verbose=False,**kw):
-    x = array(xdata)
-    y = array(ydata)
+import time
+
+
+def MLfit(xdata,ydata,initParams,paramBools,verbose=True,**kw):
     from spectra import spectrum
     
-	
+    x = array(xdata)
+    y = array(ydata)
+    
     #print 'length of init par:', len(initParams)
     #print 'par bools:', paramBools
-	
 	
     functionString = "def ForFit(x,"
     spectrumString = "spec = spectrum(x,initParams[0],initParams[1],"
@@ -99,8 +101,6 @@ def MLfit(xdata,ydata,initParams,paramBools,verbose=False,**kw):
 
     exec code in locals()
 
-    #print initialGuesses
-    
     Popt, Pcov, infodict, errmsg, ier  = curve_fit(ForFit,x,y,initialGuesses,full_output=True,**kw)
     if verbose: print 'Curvefit routine finished'
 	
