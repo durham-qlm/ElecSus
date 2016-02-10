@@ -16,6 +16,8 @@
 from setuptools import setup
 import time
 
+from elecsus.elecsus_gui import __version__
+
 
 print "\n\n NOTE: wxPython 2.8 needs to be installed for the\n\
 GUI part of this program to work! It is not currently possible\n\
@@ -25,6 +27,7 @@ This is included with Enthought Canopy. For Windows systems, this is all that's 
 For Linux systems, wxPython is not supported in Canopy and needs to be installed separately.\
 To install wxPython, please visit the wxPython website:\n\
 http://www.wxpython.org/download.php \n\n"
+
 time.sleep(1)
 
 setup(
@@ -33,7 +36,7 @@ setup(
 	author='James Keaveney, Mark Zentile et. al.',
 	author_email='james.keaveney@durham.ac.uk',
 	url='https://github.com/jameskeaveney/ElecSus',	
-	version='2.1.0',
+	version=__version__,
 	packages=['elecsus', 'elecsus.libs', 'elecsus.runcard'],
 	package_data={'elecsus':['images/elecsus_group.ico',
 							'images/elecsus_t_group.ico',

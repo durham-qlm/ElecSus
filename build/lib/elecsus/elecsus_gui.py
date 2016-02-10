@@ -16,6 +16,23 @@
 
 ElecSus GUI
 
+v2.2.0 (2016-02-10)
+	-- GUI version number and ElecSus version number are now the same
+	-- Since Enthought Canopy now ships with wxPython version 3.0, GUI has been
+		updated to work with this version of wxPython. All previous functionality should 
+		remain the same, but a few things have changed:
+			-- Theory/Fit plot selections are no longer Transient Popups - they are now Dialog Boxes
+			-- Default plot scaling may look a bit odd when viewing on small resolution monitors -
+				not sure what the real fix for this is, but as a workaround, resizing the GUI window
+				should fix this
+	-- Added ability to use experimental detuning axis on theory curve, 
+		for direct comparison when outputting data (Menu > Edit > Use Experimental Detuning Axis)
+	-- Added ability to turn off automatic scaling of axes (Menu > View > Autoscale)
+	-- Fixed an issue where save files would not save correctly after performing a fit
+	-- Minor fix for an issue where starting from the python interpreter would not exit properly on clicking the 'X'
+	-- Corrected some incorrect tooltips
+	-- Added show_versions() method, which shows the currently used version numbers of 
+		modules important to running this program
 v1.0.1 (2015-10-23)
 	-- minor bug fix where the plot selection popups would not display the Phi plots
 v1.0.0 (2015-09-03)
@@ -32,26 +49,28 @@ Requirements:
 	
 	tested on:
 	Windows 8.1, Windows 10
-		python 2.7.6 - 64-bit
-		wxpython 2.8.x
-		matplotlib 1.4.3
+		python 2.7 - 64-bit
+		wxpython 2.8, wxpython 3.0
+		matplotlib 1.4.3, 1.5.1
 		numpy 1.9.2
-		scipy 0.15.1
+		scipy 0.15.1, 0.16.1
 	
+	Currently installed version numbers can be shown by running the show_versions() method in this module
 	
 	Requires
 	--------
 	
-	wxpython version 2.8 (Note: Enthought Canopy on Windows only comes with version 2.8 as of 2015-08-09)
+	wxpython version >2.8
 		In newer versions, there are bugs with either matplotlib or wxpython that cause figures 
-		not to fill the entire panel.
+		not to fill the entire panel - temporary solution is to resize the panel.
 		
 	
 LICENSE info
 
 James Keaveney, Mark Zentile and co-authors
-2011-2015
+2011-2016
 """
+__version__ = '2.2.0'
 
 #!/usr/bin/env python
 import matplotlib
@@ -66,7 +85,12 @@ import time
 import cPickle as pickle
 
 import numpy as np
+import scipy as sp
 import matplotlib.pylab as plt
+import matplotlib as mpl
+
+import multiprocessing as mproc
+#import psutil ## future - to use lower priority for fitting
 
 # use relative file paths
 elecsus_dir = os.path.dirname(__file__)
@@ -74,6 +98,7 @@ elecsus_dir = os.path.dirname(__file__)
 try:
 	import wx
 except ImportError:
+	print 'wx cannot be imported'
 	print "wxPython 2.8 needs to be installed for this program to work! \n\
 It is not currently possible to install this automatically through pip/easy_install.\n"
 	if os.name == 'posix':
@@ -83,6 +108,13 @@ Instead, use the system python distribution (/usr/bin/python) and install throug
 	else:
 		print 'For Windows, recommended install is using Enthought Canopy'
 	raise ImportError
+
+#EXPERIMENTAL - advanced user interface
+if 'phoenix' in wx.PlatformInfo:
+    import wx.lib.agw.aui as aui
+else:
+    import wx.aui as aui
+#
 	
 wx.Log.SetLogLevel(0) # Ignore warnings
 import wx.lib.scrolledpanel as scrolled
@@ -114,6 +146,18 @@ rc('axes', color_cycle=durhamcols)
 # preamble.py includes tooltip text, default values, labels...
 from libs.preamble import *
 
+def show_versions():
+	print 'Required for GUI::'
+	print '\tElecSus: ', __version__
+	print '\tWxPython: ', wx.__version__
+	print '\tNumpy: ', np.__version__
+	print '\tMatplotlib: ', mpl.__version__
+	print 'Required for fitting (in addition to above):'
+	print '\tScipy: ', sp.__version__
+	print '\tMultiprocessing: ', mproc.__version__
+	#print '\tPSUtil: ', psutil.__version__ ## future
+	
+	
 class PlotSelectionPopUp(wx.PopupTransientWindow):
 	""" Popup box to handle which plots are displayed. """
 	def __init__(self,parent,style,mainwin,plottype):
@@ -122,10 +166,11 @@ class PlotSelectionPopUp(wx.PopupTransientWindow):
 		self.mainwin = mainwin
 		self.plottype = plottype
 
-		self.win = wx.Panel(self)#,wx.ID_ANY,pos=(0,0),size=(180,200),style=0)
+		win = wx.Panel(self) #,wx.ID_ANY,pos=(0,0),size=(180,200),style=0)
 
-		self.selection = wx.CheckListBox(self.win, wx.ID_ANY, choices = OutputPlotTypes, size=(150,-1))#,pos=(0,0))
-		self.win.Bind(wx.EVT_CHECKLISTBOX, self.OnTicked, self.selection)
+		self.selection = wx.CheckListBox(win, wx.ID_ANY, choices = OutputPlotTypes, size=(150,-1))#,pos=(0,0))
+		#self.win.Bind(wx.EVT_CHECKLISTBOX, self.OnTicked, self.selection)
+		self.selection.Bind(wx.EVT_CHECKLISTBOX, self.OnTicked)
 		
 		if plottype == 'Theory':
 			display_curves = self.mainwin.display_theory_curves
@@ -142,21 +187,23 @@ class PlotSelectionPopUp(wx.PopupTransientWindow):
 		#self.Bind(wx.EVT_BUTTON, self.OnOK, self.okbtn)
 
 		self.SetSize(self.selection.GetSize()+(10,10))
+		self.SetMinSize(self.selection.GetSize()+(10,10))
 		
 		popup_sizer = wx.BoxSizer(wx.VERTICAL)
-		popup_sizer.Add(self.selection,0,wx.EXPAND)
+		popup_sizer.Add(self.selection,0,wx.ALL, 7)
 		#popup_sizer.Add((-1,5),1,wx.EXPAND)
 		#popup_sizer.Add(self.okbtn,0,wx.EXPAND)
 
 		#sz = popup_sizer.GetBestSize()
 		#self.win.SetSize((sz.width+20, sz.height+20))
-		win_sizer = wx.BoxSizer(wx.HORIZONTAL)
-		win_sizer.Add(popup_sizer,0,wx.EXPAND|wx.ALL, border=5)
+		
+		#self.win.
+		win.SetSizer(popup_sizer)
+		#self.win.
+		popup_sizer.Fit(win)
+		self.Layout()
 
-		self.win.SetSizer(win_sizer)
-		self.win.Fit()
-
-		wx.CallAfter(self.Refresh)
+		#wx.CallAfter(self.Refresh)
 
 	def OnDismiss(self):
 		""" 
@@ -171,7 +218,7 @@ class PlotSelectionPopUp(wx.PopupTransientWindow):
 		#self.mainwin.Refresh()
 
 		self.Dismiss()
-	
+
 	def OnTicked(self,event):
 		""" 
 		Action to perform when tick boxes are ticked 
@@ -179,6 +226,80 @@ class PlotSelectionPopUp(wx.PopupTransientWindow):
 		Gets the tick box values, updates the main plot and changes 
 		the menu items to match the popup box
 		"""
+		print 'Ticked Event'
+		
+		if self.plottype == 'Theory':
+			items = self.selection.GetChecked()
+			self.mainwin.display_theory_curves = [False]*9
+			for menuitem in self.mainwin.showTplotsSubMenu.GetMenuItems():
+				menuitem.Check(False)
+			for item in items:
+				self.mainwin.display_theory_curves[item] = True
+				self.mainwin.showTplotsSubMenu.GetMenuItems()[item].Check(True)
+			print self.mainwin.display_theory_curves
+		elif self.plottype == 'Fit':
+			items = self.selection.GetChecked()
+			self.mainwin.display_expt_curves = [False]*9
+			for menuitem in self.mainwin.showEplotsSubMenu.GetMenuItems():
+				menuitem.Check(False)
+			for item in items:
+				self.mainwin.display_expt_curves[item] = True
+				self.mainwin.showEplotsSubMenu.GetMenuItems()[item].Check(True)
+			print self.mainwin.display_expt_curves
+
+		self.mainwin.OnCreateAxes(self.mainwin.figs[0],self.mainwin.canvases[0])
+
+class PlotSelectionDialog(wx.Dialog):
+	""" Popup box to handle which plots are displayed. """
+	def __init__(self,parent,mainwin,title,plottype,pos):
+		wx.Dialog.__init__(self,parent,wx.ID_ANY,title,size=(400,600),pos=pos)
+
+		self.mainwin = mainwin
+		self.plottype = plottype
+
+		win = wx.Panel(self) #,wx.ID_ANY,pos=(0,0),size=(180,200),style=0)
+
+		self.selection = wx.CheckListBox(win, wx.ID_ANY, choices = OutputPlotTypes, size=(120,-1))#,pos=(0,0))
+		#self.win.Bind(wx.EVT_CHECKLISTBOX, self.OnTicked, self.selection)
+		self.selection.Bind(wx.EVT_CHECKLISTBOX, self.OnTicked)
+		
+		if plottype == 'Theory':
+			display_curves = self.mainwin.display_theory_curves
+		else:
+			display_curves = self.mainwin.display_expt_curves
+
+		checked_items = []
+		for i in range(len(display_curves)):
+			if display_curves[i]:
+				checked_items.append(i)
+
+		self.selection.SetChecked(checked_items)
+		#self.okbtn = wx.Button(self.win,wx.ID_OK,size=(120,BtnSize))
+		#self.Bind(wx.EVT_BUTTON, self.OnOK, self.okbtn)
+
+		self.SetSize(self.selection.GetSize()+(50,50))
+		self.SetMinSize(self.selection.GetSize()+(50,50))
+		
+		popup_sizer = wx.BoxSizer(wx.VERTICAL)
+		popup_sizer.Add(self.selection,0,wx.EXPAND|wx.ALL, 7)
+		#popup_sizer.Add((-1,5),1,wx.EXPAND)
+		#popup_sizer.Add(self.okbtn,0,wx.EXPAND)
+
+		#sz = popup_sizer.GetBestSize()
+		#self.win.SetSize((sz.width+20, sz.height+20))
+		
+		self.SetSizer(popup_sizer)
+		wx.CallAfter(self.Refresh)
+		
+	def OnTicked(self,event):
+		""" 
+		Action to perform when tick boxes are ticked 
+		
+		Gets the tick box values, updates the main plot and changes 
+		the menu items to match the popup box
+		"""
+		print 'Ticked Event'
+		
 		if self.plottype == 'Theory':
 			items = self.selection.GetChecked()
 			self.mainwin.display_theory_curves = [False]*9
@@ -404,8 +525,8 @@ class OptionsPanel(scrolled.ScrolledPanel):
 		wx.ComboBox(self,wx.ID_ANY,choices=element_list,style=wx.CB_READONLY,size=(80,-1)), \
 		wx.ComboBox(self,wx.ID_ANY,choices=D_line_list, style=wx.CB_READONLY,size=(80,-1)), \
 		wx.CheckBox(self, label="")]
-		self.fixed_paramlist_inputs[0].SetSelection(0)
-		self.fixed_paramlist_inputs[1].SetSelection(0)
+		self.fixed_paramlist_inputs[0].SetSelection(2)
+		self.fixed_paramlist_inputs[1].SetSelection(1)
 		self.fixed_paramlist_inputs[2].SetValue(True)
 		
 		# create list of parameters - labels and spin-control boxes
@@ -551,19 +672,21 @@ class PlotToolPanel(wx.Panel):
 	""" Panel to hold the matplotlib figure/canvas and toolbar """
 	def __init__(self, parent, mainwin, ID):
 		""" mainwin is the main panel so we can bind buttons to actions in the main frame """
-		wx.Panel.__init__(self, parent)
+		wx.Panel.__init__(self, parent, id=-1)
 		
-		self.fig = plt.figure(ID,facecolor=(240./255,240./255,240./255))
+		
+		self.fig = plt.figure(ID,facecolor=(240./255,240./255,240./255),figsize=(11.1,9.25),dpi=80)
 		
 		#self.ax = self.fig.add_subplot(111)
 		
 		# create the wx objects to hold the figure
-		self.canvas = FigureCanvasWxAgg(self, wx.ID_ANY, self.fig)
+		self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
 		self.toolbar = Toolbar(self.canvas) #matplotlib toolbar (pan, zoom, save etc)
+		#self.toolbar.Realize()
 		
 		# Create vertical sizer to hold figure and toolbar - dynamically expand with window size
 		plot_sizer = wx.BoxSizer(wx.VERTICAL)
-		plot_sizer.Add(self.canvas, 1, wx.TOP|wx.LEFT|wx.GROW)
+		plot_sizer.Add(self.canvas, 1, flag = wx.EXPAND|wx.ALL) #wx.TOP|wx.LEFT|wx.GROW)
 		plot_sizer.Add(self.toolbar, 0, wx.EXPAND)
 
 		mainwin.figs.append(self.fig)
@@ -571,11 +694,11 @@ class PlotToolPanel(wx.Panel):
 		mainwin.canvases.append(self.canvas)
 
 		# display some text in the middle of the window to begin with
-		self.fig.text(0.5,0.5,'ElecSus GUI\n\nVersion 1.0.1\n\nTo get started, use the panel on the right\nto either Compute a spectrum or Import some data...', ha='center',va='center')
+		self.fig.text(0.5,0.5,'ElecSus GUI\n\nVersion '+__version__+'\n\nTo get started, use the panel on the right\nto either Compute a spectrum or Import some data...', ha='center',va='center')
 		self.fig.hold(False)
 		
 		self.SetSizer(plot_sizer)
-		self.Fit()
+		#self.Layout() #Fit()
 
 class StatusPanel(scrolled.ScrolledPanel):
 	def __init__(self, parent, mainwin, ID):
@@ -654,6 +777,8 @@ class DataProcessingDlg(wx.Dialog):
 		
 		wx.Dialog.__init__(self,parent,id,title,size=(360,450))
 		
+		self.SetMinSize((360,450))
+		
 		self.parent = parent
 		
 		# make copy of non-binned / smoothed data in case reset button is pressed
@@ -678,7 +803,7 @@ class DataProcessingDlg(wx.Dialog):
 		self.new_dsize = wx.TextCtrl(self,wx.ID_ANY,"",style=wx.TE_READONLY|wx.TE_CENTRE,size=(80,-1))
 		self.new_dsize.ChangeValue(str(int(len(parent.x_fit_array)/float(self.bin_size.GetValue()))))
 		
-		bin_btn = wx.Button(self,label="Bin Data")
+		bin_btn = wx.Button(self,label="Bin Data",size=(75,-1))
 		self.Bind(wx.EVT_BUTTON,self.OnDoBin,bin_btn)
 		
 		smooth_blurb = wx.StaticText(self,wx.ID_ANY,"Smoothing is based on a moving average with a triangular weighting function of a specified width. For convenience, the output array is the same length as the input, but the smoothing is only applied over N - 2n data points (removing n from each end of the array), where N is the length of the data array and n is the width of the smoothing window.",size=(350,-1),style=wx.ALIGN_CENTRE_HORIZONTAL)
@@ -758,7 +883,8 @@ class DataProcessingDlg(wx.Dialog):
 		panel_sizer.Add(btn_sizer,0,wx.EXPAND)
 		panel_sizer.Add((-1,10),0,wx.EXPAND)		
 		
-		self.SetSizer(panel_sizer)
+		self.SetSizerAndFit(panel_sizer)
+		
 		self.Layout()
 		
 		
@@ -808,7 +934,7 @@ class DataProcessingDlg(wx.Dialog):
 		self.parent.x_expt_arrays[cindex] = self.parent.x_fit_array
 		self.parent.y_expt_arrays[cindex] = self.parent.y_fit_array
 
-		self.parent.OnCreateAxes(self.parent.figs[0],self.parent.canvases[0])
+		self.parent.OnCreateAxes(self.parent.figs[0],self.parent.canvases[0],clear_current=False)
 						
 class AdvancedFitOptions(wx.Dialog):
 	def __init__(self,parent,title,id):
@@ -954,6 +1080,12 @@ class ElecSus_GUI_Frame(wx.Frame):
 		""" Initialise main frame """
 		wx.Frame.__init__(self,None,title=title,size=(1300,850))
 		
+		## EXPERIMENTAL
+		#self._mgr = aui.AuiManager()
+		#
+		## notify AUI which frame to use
+		#self._mgr.SetManagedWindow(self)
+
 		#ubuntu sizing:
 		if os.name == 'posix':
 			font = wx.Font(9, wx.FONTFAMILY_DEFAULT, wx.NORMAL, wx.NORMAL)
@@ -973,12 +1105,12 @@ class ElecSus_GUI_Frame(wx.Frame):
 		
 		self._init_default_values()	
 		self._init_plot_defaults()
-		self._init_panels()
 		self._init_menus()
+		self._init_panels()
 		
-		# redirect stdout (command line text) to status box
-		sys.stdout = self.StatusPanel
-		sys.stderr = self.ErrorPanel
+		## redirect stdout (command line text) to status box
+		#sys.stdout = self.StatusPanel
+		#sys.stderr = self.ErrorPanel
 		
 		# Create initially blank set of axes
 		#self.OnCreateAxes(self.figs[0],self.canvases[0])
@@ -1025,9 +1157,14 @@ class ElecSus_GUI_Frame(wx.Frame):
 		self.y_expt_arrays = [None]*len(self.plot_outputs)
 		self.x_fit_array, self.y_fit_array = None,None
 		
+		# x and y-limits
+		self.xlim = None
+		self.ylim = [None]*len(OutputPlotTypes)
+		
 		# plot data visible when set to True - default = view transmission (S0)
-		self.display_theory_curves = [True,False,False,False,False,False,False,False,False]
-		self.display_expt_curves = [False,False,False,False,False,False,False,False,False]
+		self.display_theory_curves = [False]*len(OutputPlotTypes)
+		self.display_theory_curves[0] = True
+		self.display_expt_curves = [False]*len(OutputPlotTypes)
 		
 		# live plotting
 		self.LiveEventsBound = False
@@ -1038,6 +1175,12 @@ class ElecSus_GUI_Frame(wx.Frame):
 		
 		#fit bounds
 		self.fit_bounds = [None, None]
+		
+		# Theory curves are calculated with same detuning axis as experimental data
+		self.UseExpDetuning = False
+		
+		# autoscale
+		self.Autoscale = True
 	
 	def _init_menus(self):
 		""" Initialise menu bar items """
@@ -1065,9 +1208,11 @@ class ElecSus_GUI_Frame(wx.Frame):
 		editMenu = wx.Menu()
 		eM_CopyTtoF = editMenu.Append(wx.ID_ANY, "Copy Parameters: &Theory to Fit", "Copy - T to F")
 		eM_CopyFtoT = editMenu.Append(wx.ID_ANY, "Copy Parameters: &Fit to Theory", "Copy - F to T")
-		
 		self.Bind(wx.EVT_MENU, self.OnCopyParamsTtoF, eM_CopyTtoF)
 		self.Bind(wx.EVT_MENU, self.OnCopyParamsFtoT, eM_CopyFtoT)
+		
+		self.eM_UseExpDetuning = editMenu.Append(wx.ID_ANY,"&Use Experimental Detuning Axis", "Use Exp Axis",kind=wx.ITEM_CHECK)
+		self.Bind(wx.EVT_MENU, self.OnUseExpDetuning, self.eM_UseExpDetuning)
 		
 		# About
 		aboutMenu = wx.Menu()
@@ -1080,8 +1225,12 @@ class ElecSus_GUI_Frame(wx.Frame):
 		viewMenu = wx.Menu()
 		vM_liveplot = viewMenu.Append(wx.ID_ANY, "&Live Plot", "Update Plot in real-time",kind=wx.ITEM_CHECK)
 		self.Bind(wx.EVT_MENU, self.OnLivePlotting, vM_liveplot)
+		vM_autoscale = viewMenu.Append(wx.ID_ANY, "&Autoscale when updating axes", "Autoscale",kind=wx.ITEM_CHECK)
+		vM_autoscale.Check(True)
+		self.Bind(wx.EVT_MENU, self.OnAutoscale, vM_autoscale)
+		
 		# Select plot types to display
-
+		
 		# Theory Plot
 		theoryplotMenu = wx.Menu()
 		tpM_plotholdon = theoryplotMenu.Append(wx.ID_ANY, 
@@ -1233,12 +1382,12 @@ class ElecSus_GUI_Frame(wx.Frame):
 		
 		# Sizer constructs are used for placement of all GUI elements. 
 		# This makes the whole window scalable in a predictable way.
-
-
-	## Create plot part of the window
+		
+		## Create plot part of the window
 		
 		## create plot in a notebook-style for adding more tabs later on
 		PlotTabs = wx.Notebook(self.panel)
+		#PlotTabs = aui.AuiNotebook(self.panel)
 		
 		# The plot panels
 		self.T_Panel = PlotToolPanel(PlotTabs,self,1)
@@ -1342,10 +1491,14 @@ class ElecSus_GUI_Frame(wx.Frame):
 		main_sizer.Add(wx.StaticLine(self.panel,-1,size=(1,-1),style=wx.LI_VERTICAL),0,wx.EXPAND)
 		main_sizer.Add(button_sizer,0,wx.EXPAND)
 
-		self.panel.SetSizer(main_sizer)
+		self.panel.SetSizerAndFit(main_sizer)
 		self.panel.Layout()
+		self.SetSize((1300,900))
+		self.SetSize((1300,850))
 		
-				
+		#wx.CallAfter(self.canvases[0].SetSize,(1200,900))
+		
+		
 #		
 ## Actions for events
 #
@@ -1353,436 +1506,8 @@ class ElecSus_GUI_Frame(wx.Frame):
 ##
 #### General Actions - Close window, Save Data etc...
 ##
-
-	def OnExit(self,event):
-		""" What to do when the window is closed """
-		## explicitly close all figures (bug with matplotlib and wx??)
-		plt.close('all')
-		self.Destroy()
-		app.ExitMainLoop()
-		
-	def OnAboutThis(self,event):
-		""" Show a message box about the program """
-		dlg = wx.MessageDialog(self, "A graphical interface for ElecSus, a program to calculate the weak-probe electric susceptibility of alkali atoms.\n\n Written in python using wxPython and matplotlib.", "About", wx.OK)
-		if dlg.ShowModal() == wx.ID_OK:
-			dlg.Destroy()
-
-	def OnAboutElecSus(self,event):
-		""" Show a message box about ElecSus """
-		dlg = wx.MessageDialog(self, NOTICE.noticestring, "About", wx.OK)
-		if dlg.ShowModal() == wx.ID_OK:
-			dlg.Destroy()
-					
-	def OnSaveCSVData(self,event):
-		""" 
-		Method to save the main plot data traces as a n-column csv file. 
-		
-		*All* data is saved, whether or not it is displayed 
-		
-		This method selects the file name, then passes that to SaveTheoryCurves()
-		"""
-		
-		SaveFileDialog = wx.FileDialog(self,"Save Output File", "./", "Outputs",
-			"CSV files (*.csv)|*.csv", wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
-		
-		if SaveFileDialog.ShowModal() == wx.ID_OK:
-			output_filename = SaveFileDialog.GetPath()
-			SaveFileDialog.Destroy()
-			
-			print output_filename
-			
-			# don't need this - FD_OVERWRITE_PROMPT does the same job
-			#check for overwrite current files
-			#if os.path.isfile(output_filename):
-			#	OverwriteDialog = wx.MessageDialog(self,"Warning: file exists already! Overwrite?",\
-			#		"Overwrite?",wx.YES_NO|wx.NO_DEFAULT)
-			#	
-			#	if OverwriteDialog.ShowModal() == wx.NO:
-			#		OverwriteDialog.Destroy()
-			#		return # exit without saving
-			#	else:
-			#		OverwriteDialog.Destroy()
-			
-			## do save
-			self.SaveTheoryCurves(output_filename)
-
-	def SaveTheoryCurves(self,filename):
-		""" 
-		Method to actually do the saving of xy data to csv file. 
-		Separate to the OnSaveCSVData method in case a filename is automatically chosen
-		- i.e. when fitting data, there is an option to autosave the results which calls this method
-		"""
-		xy_data = zip(self.x_array,self.y_arrays[0],self.y_arrays[1],self.y_arrays[2],self.y_arrays[3],\
-			self.y_arrays[4][0], self.y_arrays[4][1], self.y_arrays[5][0], self.y_arrays[5][1], \
-			self.y_arrays[6][0], self.y_arrays[6][1], self.y_arrays[7][0], self.y_arrays[7][1], self.y_arrays[8])
-		success = write_CSV(xy_data, filename, titles=['Detuning']+OutputTypes)
-		if not success:
-			problem_dlg = wx.MessageDialog(self, "There was an error saving the data...", "Error saving", wx.OK|wx.ICON_ERROR)
-			problem_dlg.ShowModal()
-			
-	def OnSaveConfig(self,event):
-		""" 
-		Save present configuration settings - plot types, data ranges, parameters ... for faster repeating of common tasks
-		"""
-		
-		dlg = wx.MessageDialog(self, "Save current configuration of the program - theory/fit parameters, plot settings etc...\n\nNot implemented yet...", "No no no", wx.OK)
-		dlg.ShowModal()
-
-		data_dump = [0]
-		
-		# get plot settings
-		# ...
-		# get theory tab settings
-		# ...
-		# get fit tab settings
-		# ...
-		# get mist settings
-		# ...
-		
-		## filedialog window for selecting filename/location
-		filename = './elecsus_gui_config.dat'
-		
-		# save data in python-readable (binary) format using pickle module
-		with open(filename,'wb') as file_obj:
-			pickle.dump(data_dump, file_obj)
-		
-	def OnLoadConfig(self,event):
-		"""
-		Load previous configuration settings from pickle file, for picking up where you left off...
-		"""
-		dlg = wx.MessageDialog(self, "Load previous configuration of the program - theory/fit parameters, plot settings etc...\n\nNot implemented yet...", "No no no", wx.OK)
-		dlg.ShowModal()
-		
-		## do the opposite of save config ...
-		
-	def OnSaveFig(self,event):
-		""" Basically the same as saving the figure by the toolbar button. """
-		#widcards for file type selection
-		wilds = "PDF (*.pdf)|*.pdf|" \
-				"PNG (*.png)|*.png|" \
-				"EPS (*.eps)|*.eps|" \
-				"All files (*.*)|*.*"
-		exts = ['.pdf','.png','.eps','.pdf'] # default to pdf
-		SaveFileDialog = wx.FileDialog(self,message="Save Figure", defaultDir="./", defaultFile="figure",
-			wildcard=wilds, style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
-		SaveFileDialog.SetFilterIndex(0)
-		
-		if SaveFileDialog.ShowModal() == wx.ID_OK:
-			output_filename = SaveFileDialog.GetPath()
-			if output_filename[-4:] == exts[SaveFileDialog.GetFilterIndex()]:
-				output_filename = output_filename[:-4]
-			
-			#save all current figures
-			for fig, id in zip(self.figs, self.fig_IDs):
-				fig.savefig(output_filename+'_'+str(id)+exts[SaveFileDialog.GetFilterIndex()])
 				
-		SaveFileDialog.Destroy()
-
-	def OnCopyParamsTtoF(self,event):
-		self.CopyParams(1)
-
-	def OnCopyParamsFtoT(self,event):
-		self.CopyParams(2)
-
-	def CopyParams(self,order):
-		T_params = self.ThyPanel.fixed_paramlist_inputs + self.ThyPanel.fit_paramlist_inputs
-		F_params = self.FitPanel.fixed_paramlist_inputs + self.FitPanel.fit_paramlist_inputs
-
-		for fp, tp in zip(F_params,T_params):
-			if order==1:
-				# Theory to Fit
-				fp.SetValue(tp.GetValue())
-			elif order==2:
-				tp.SetValue(fp.GetValue())
-				
-		print 'Parameters Copied'
-		
-##
-####			
-####### Plot-specific actions
-####
-##
-	def OnTheoryPlotSelection(self,event):
-		""" Select plots to show, via the popup button on the main panel """
-		win = PlotSelectionPopUp(self.panel,wx.SIMPLE_BORDER,self,'Theory')
- 		
-		btn = event.GetEventObject()
-		pos = btn.ClientToScreen( (0,0) )
-		sz =  btn.GetSize()
-		win.Position(pos, (0, sz[1]))
-        
-		win.Popup()
-
-	def OnFitPlotSelection(self,event):
-		""" Select plots to show, via the popup button on the main panel """
-		win = PlotSelectionPopUp(self.panel,wx.SIMPLE_BORDER,self,'Fit')
- 		
-		btn = event.GetEventObject()
-		pos = btn.ClientToScreen( (0,0) )
-		sz =  btn.GetSize()
-		win.Position(pos, (0, sz[1]))
-        
-		win.Popup()
-
-	def OnLivePlotting(self,event):
-		""" 
-		Turn on/off live plotting when parameters are changed. 
-		Main plot updates in pseudo-realtime, rather than having to click 'compute' every time
-		
-		This method binds or unbinds a call to the compute button each time a control is changed.
-		"""
-		LivePlotOn = bool(event.Checked())
-		
-		if LivePlotOn:
-			for ctrl in self.ThyPanel.DetuningCtrl + self.ThyPanel.fit_paramlist_inputs:
-				self.Bind(EVT_FLOATSPIN, self.OnComputeButton, ctrl)
-			
-			for ctrl in self.ThyPanel.fixed_paramlist_inputs[0:2]:
-				self.Bind(wx.EVT_COMBOBOX, self.OnComputeButton, ctrl)
-			
-			self.LiveEventsBound = True
-		else:
-			# unbind the events, if currently bound
-			if self.LiveEventsBound:
-				# unbind
-				for ctrl in self.ThyPanel.DetuningCtrl + self.ThyPanel.fit_paramlist_inputs:
-					self.Unbind(EVT_FLOATSPIN, ctrl)
-
-				for ctrl in self.ThyPanel.fixed_paramlist_inputs[0:2]:
-					self.Unbind(EVT_FLOATSPIN, ctrl)
-				
-			self.LiveEventsBound = False
-	
-	def OnFileOpen(self,event):
-		""" 
-		Open a csv data file and plot the data. Detuning is assumed to be in GHz. 
-		Vertical units are assumed to be the same as in the theory curves 
-		"""
-		self.dirname= ''
-		dlg_choice = wx.SingleChoiceDialog(self,"Choose type of data to be imported","Data import",choices=OutputTypes)
-		
-		# wait for OK to be clicked
-		if dlg_choice.ShowModal() == wx.ID_OK:
-			choice = dlg_choice.GetSelection()
-			#print 'Choice:', choice
-			self.expt_type = OutputTypes[choice]
-			# use the choice index to select which axes the data appears on	- may be different 
-			# if axes order is rearranged later?
-			self.choice_index = OutputTypes_index[choice]
-			#print self.choice_index
-			
-			dlg_choice.Destroy()
-		
-			dlg_open = wx.FileDialog(self,"Choose 2-column csv file (Detuning, Transmission)",
-									self.dirname,"","*.csv",wx.OPEN)
-			
-			# if OK button clicked, open and read file
-			if dlg_open.ShowModal() == wx.ID_OK:
-				#set experimental display on, and update menus
-				self.display_expt_curves[self.choice_index] = True
-				self.showEplotsSubMenu.GetMenuItems()[self.choice_index].Check(True)
-			
-				self.filename = dlg_open.GetFilename()
-				self.dirname = dlg_open.GetDirectory()
-				#call read
-				self.x_expt_arrays[self.choice_index],self.y_expt_arrays[self.choice_index] = read_CSV(os.path.join(self.dirname,self.filename),spacing=0)
-				
-				#overwrite fit_array data - i.e. last data to be loaded
-				self.x_fit_array = self.x_expt_arrays[self.choice_index]
-				self.y_fit_array = self.y_expt_arrays[self.choice_index]
-				
-				# implicit that the fit type is the same as last data imported
-				self.fit_datatype = self.expt_type
-				
-				## create main plot				
-				self.OnCreateAxes(self.figs[0],self.canvases[0],clear_current=True)
-				
-				
-			dlg_open.Destroy()
-
-	def OnCreateAxes(self,fig,canvas,clear_current=True):
-		""" (Re)Create as many sets of axes in the main figure as are needed, and label them all """
-
-		# calculate how many axes should be displayed - count if any elements of display_expt/theory_curves are true
-		n_axes = [i|j for i,j in \
-			zip(self.display_theory_curves,self.display_expt_curves)].count(True)
-		
-		# clear figure and start again from nothing if number of axes has changed, or if hold is off
-		if clear_current:
-			fig.clf()
-		if n_axes != len(fig.axes):
-			fig.clf()
-		
-		# create bare axes, all equal sizes
-		if n_axes == 0:
-			n_axes = 1
-		
-		fig.add_subplot(n_axes,1,1)
-		i=0
-		for i in range(1,n_axes):
-			fig.add_subplot(n_axes,1,i+1,sharex=fig.axes[0])
-		
-		
-		# Testing:
-		#print self.display_expt_curves
-		#print self.y_expt_arrays
-		
-		## PLOT BASED ON BOOL DISPLAY_x_CURVE
-		i=0
-		for displayT,displayE,yt,xe,ye,ylabel in zip(self.display_theory_curves,self.display_expt_curves,\
-								self.y_arrays,self.x_expt_arrays,self.y_expt_arrays,self.plot_ylabels):
-			try:
-				#print i
-				ax = fig.axes[i]
-			except:
-				pass
-			if displayE and ye is not None:
-				#if isinstance(ye, (list,tuple)):
-				#	for xi,yi in zip(xe,ye):
-				#		ax.plot(xi,yi,color=d_grey)
-				#else:
-				ax.plot(xe,ye,color=d_olive)
-			if displayT and yt is not None:
-				if isinstance(yt, (list,tuple)):
-					for yi in yt:
-						ax.plot(self.x_array,yi)
-				else:
-					ax.plot(self.x_array,yt)
-			if displayT or displayE:
-				ax.set_ylabel(ylabel)
-				i += 1
-			
-		# set x axis label and rescale all axes to fit data
-		fig.axes[-1].set_xlabel('Detuning (GHz)')
-		for ax in fig.axes:
-			ax.autoscale_view(tight=True)
-			
-		#fig.axes[-1].set_xlim(self.xrange)
-		
-		# remove the rest of the x tick labels from all but the bottom panel
-		for ax in fig.axes[:-1]:
-			plt.setp(ax.get_xticklabels(),visible=False)
-		
-		#print 'Created '+str(n_axes)+' axes'
-		
-		# update the plot window
-		self.draw_fig(fig,canvas)
-	
-	def OnCreateResidualPlot(self,fig,canvas):
-		"""
-		Create a plot with main data, residuals and (optionally) histogram of residuals, using
-		subplot2grid in matplotlib 
-		"""
-		
-		fig.clf()
-		
-		print 'Debugging...'
-		print self.fit_datatype
-		print self.y_optimised
-		
-		#normalised_residuals = False
-		if self.normalised_residuals:
-			### not done yet! -- requires error bars in imported data
-			residuals = 100*(self.y_fit_array-self.y_optimised)
-		else:
-			residuals = 100*(self.y_fit_array-self.y_optimised)
-		
-		fig = plt.figure(2)
-		yy = 4
-		xx = 6
-		if self.residual_histogram:
-			ax_main = plt.subplot2grid((yy,xx),(0,0),colspan=xx-1,rowspan=yy-1)
-			ax_residual = plt.subplot2grid((yy,xx),(yy-1,0),colspan=xx-1,sharex=ax_main)
-			ax_hist = plt.subplot2grid((yy,xx), (yy-1,xx-1), sharey=ax_residual)
-
-			plt.setp(ax_hist.get_yticklabels(),visible=False)
-			ax_hist.set_xticklabels([])
-
-		else:
-			ax_main = plt.subplot2grid((yy,xx),(0,0),colspan=xx,rowspan=yy-1)
-			ax_residual = plt.subplot2grid((yy,xx),(yy-1,0),colspan=xx,sharex=ax_main)
-			
-		plt.setp(ax_main.get_xticklabels(),visible=False)
-		
-		ax_residual.set_xlabel('Detuning (GHz)')
-		ax_residual.set_ylabel('Residuals (%)')
-
-		ax_main.set_ylabel(self.expt_type)
-		
-		ax_main.plot(self.x_fit_array,self.y_fit_array,color=d_olive)
-		print len(self.x_fit_array), len(self.y_optimised)
-		ax_main.plot(self.x_fit_array,self.y_optimised)
-		ax_residual.plot(self.x_fit_array,residuals,lw=1.25)
-		ax_residual.axhline(0,color='k',linestyle='dashed')
-		
-		if self.residual_histogram:
-			bins = 25
-			ax_hist.hist(residuals, bins=bins, orientation='horizontal')
-
-		ax_main.autoscale_view(tight=True)
-		
-		self.draw_fig(fig,canvas)
-
-	def OnResHist(self,event):
-		""" Turn histogram of residuals on/off """
-		self.residual_histogram = bool(event.Checked())
-		self.OnCreateResidualPlot(self.figs[1],self.canvases[1])
-					
-	def OnPlotHold(self,event):
-		""" 
-		Toggle plot hold (keep data on updating figure) on/off
-		Allows multiple data sets to be shown on same plot
-		"""
-		#self.PlotHold = bool(event.Checked())
-		#self.figs[0].hold(self.PlotHold)
-		dlg = wx.MessageDialog(self, "Not implemented yet...", "No no no", wx.OK)
-		dlg.ShowModal()
-			
-	#def OnClearPlot(self,event):
-	#	""" Get list of all axes in figure and clear them all """
-	#	for fig in self.figs[0]:
-	#		for ax in fig.axes:
-	#			ax.cla()		
-	
-	def OnPlotLegend(self,event):
-		""" Toggle plot legend on/off """
-		self.legendOn = bool(event.Checked())
-	
-	def OnGridToggleMain(self,event):
-		""" Toggle axes grid on main plot """
-		for ax in self.figs[0].axes:
-			ax.grid(bool(event.Checked()))
-		self.draw_fig(self.figs[0],self.canvases[0])
-					
-	def OnGridToggleRes(self,event):
-		""" Toggle axes grid on residuals plot """
-		for ax in self.figs[1].axes:
-			ax.grid(bool(event.Checked()))
-		self.draw_fig(self.figs[1],self.canvases[1])
-
-	def OnShowTplots(self,event):
-		""" Action when plot type is changed from the menu """
-		for ii, item in enumerate(self.showTplotsSubMenu.GetMenuItems()):
-			if item.IsChecked():
-				self.display_theory_curves[ii] = True
-			else:
-				self.display_theory_curves[ii] = False
-		
-		#redraw plot
-		self.OnCreateAxes(self.figs[0],self.canvases[0])
-
-	def OnShowEplots(self,event):
-		""" Action when plot type is changed from the menu """
-		for ii, item in enumerate(self.showEplotsSubMenu.GetMenuItems()):
-			if item.IsChecked():
-				self.display_expt_curves[ii] = True
-			else:
-				self.display_expt_curves[ii] = False
-		
-		#redraw plot
-		self.OnCreateAxes(self.figs[0],self.canvases[0])
-				
-	def draw_fig(self,fig,canvas):
+	def _draw_fig(self,fig,canvas):
 		""" shortcut method for redrawing figure and rearranging subplots to fill space """
 		try:
 			fig.tight_layout()
@@ -1792,107 +1517,19 @@ class ElecSus_GUI_Frame(wx.Frame):
 		for can in self.canvases:
 			can.draw()
 		#self.SendSizeEvent()
-##
-#### Fitting specific actions
-##
-	def OnFitWarnings(self,event):
-		""" 
-		Warn about bad fitting practices - e.g. when there are many data points to fit, or many
-		fit parameters where the fit algorithm could be improved.
-		"""
-		self.warnings = bool(event.Checked())
-	
-	def OnFitTypeChangePanel(self,event):
-		""" Action to perform when fit type is changed """
-		#print self.fittypeSubMenu.GetMenuItems()
-		print ''
-		for panelitem in self.FitPanel.fit_types:
-			if panelitem.GetValue():
-				self.fit_algorithm = panelitem.GetLabel()
-				#self.fittypeSubMenu.Check(idfit,True)
-				#self.OnFitTypeChangeMenu(1)
-				print 'Fit Algorithm changed to:', self.fit_algorithm
-
-			#self.fittypeSubMenu.Check(idfit,False)
-			#print menuitem.IsChecked()
-
-	def OnDataProcessing(self,event):
-		""" Open the dialog box for binning / smoothing data """
-		if self.x_fit_array is not None:
-			dlg = DataProcessingDlg(self, "Data Processing", wx.ID_ANY)
-			if dlg.Show() == wx.ID_OK:
-				dlg.Destroy()	
-		else:
-			dlg = wx.MessageDialog(self,"Can't process data that hasn't been loaded...", "Nope.", wx.OK|wx.ICON_INFORMATION)
-			dlg.ShowModal()
-	
-	def OnFitBounds(self,event):
-		dlg = FitBoundsDialog(self,"Fit Bounds", wx.ID_ANY)
 		
-		if dlg.ShowModal() == wx.ID_OK:
-			self.fit_bounds = dlg.OnUpdateRange()
-			#print self.fit_bounds		
-		
-	def OnAdvancedOptions(self,event):
-		""" Open the dialog box for adjusting advanced fit options """
-		dlg = AdvancedFitOptions(self,"Advanced Fit Options",wx.ID_ANY)
-		
-		# Show() rather than ShowModal() - doesn't halt program flow
-		if dlg.ShowModal() == wx.ID_OK:
-			self.advanced_fitoptions = dlg.return_all_options()
-			print self.advanced_fitoptions
-				
-##
-#### Main purpose of this - call elecsus with various settings!
-##
-	def OnFitButton(self,event):
-		""" Call elecsus to fit data. Some sanity checking takes place first. """
-
-		## check for things that will prevent fitting from working, e.g. no data loaded - halt fitting if found
-		if self.y_fit_array == None:
-			#warn about no data present
-			dlg = wx.MessageDialog(self, "No experimental data has been loaded, cannot proceed with fitting...", "No no no", wx.OK|wx.ICON_EXCLAMATION)
-			dlg.ShowModal()
-			return
-		
-		self.fit_bools = [checkbox.IsChecked() for checkbox in self.FitPanel.fit_paramlist_bools]
-		if self.fit_bools.count(True) == 0:
-			dlg = wx.MessageDialog(self, "No fit parameters are floating, cannot proceed with fitting...", "No no no", wx.OK|wx.ICON_EXCLAMATION)
-			dlg.ShowModal()
-			return
-		
-		## check for non-optimal conditions and warn user
-		if self.warnings:
-			## if number of booleans > 3 and ML fitting selected, warn about fitting methods
-			if self.fit_bools.count(True) > 3 and self.fit_algorithm=='Marquardt-Levenberg':
-				dlg = wx.MessageDialog(self, "The number of fitted parameters is large and the Marquardt-Levenberg algorithm is selected. There is a high probability that the fit will return a local minimum, rather than the global minimum. \n\nTo find the global minimum more reliably, consider changing to either Random-Restart or Simulated Annealing algorithms.\n\n Continue with fitting anyway?", "Warning", wx.YES|wx.NO|wx.ICON_WARNING)
-				
-				if dlg.ShowModal() == wx.ID_NO:
-					return
-				
-			## if large number of data points
-			if len(self.x_fit_array) > 5000:
-				dlg = wx.MessageDialog(self, "The number of data points is quite high and fitting may be very slow, especially with Random-Restart or Simulated Annealing methods. \n\nConsider reducing the number of data points by binning data (Menu Fit --> Data Processing... --> Bin Data).\n\n Continue with fitting anyway?", "Warning", wx.YES|wx.NO|wx.ICON_WARNING)
-
-				if dlg.ShowModal() == wx.ID_NO:
-					return
-			
-		# If all conditions satisfied, start the fitting process
-		self.Call_ElecSus('Fit')
-		
-	def OnComputeButton(self,event):
-		""" Call elecsus to compute spectrum """
-		self.Call_ElecSus('Theory')
-
 	def Call_ElecSus(self,calc_or_fit):
 		""" call elecsus with passed arguments - single calculation or fit, depending on option """
 		
 		#get parameter list, xrange from either theory or fit panel
 		if calc_or_fit == 'Theory':
 			panel = self.ThyPanel
-			xmin,xmax,npts = [input.GetValue() for input in panel.DetuningCtrl]
-			self.x_array = np.linspace(xmin,xmax,npts)
-			
+			if not self.UseExpDetuning:
+				# get detuning range from GUI controls
+				xmin,xmax,npts = [input.GetValue() for input in panel.DetuningCtrl]
+				self.x_array = np.linspace(xmin,xmax,npts)
+			else:
+				self.x_array = self.x_fit_array
 		elif calc_or_fit == 'Fit':
 			panel = self.FitPanel
 			
@@ -1952,7 +1589,9 @@ class ElecSus_GUI_Frame(wx.Frame):
 			#print self.y_arrays
 			#for i, array in enumerate(self.y_arrays):
 			#	print i, type(array)
-			self.OnCreateAxes(self.figs[0],self.canvases[0])
+			
+			self.GetCurrentAxesLimits(self.figs[0])
+			self.OnCreateAxes(self.figs[0],self.canvases[0],clear_current=True)
 			
 		elif calc_or_fit == 'Fit':
 			### Use another thread for running elecsus fitting so the main panel doesn't stop responding
@@ -2006,9 +1645,313 @@ class ElecSus_GUI_Frame(wx.Frame):
 				dlg = wx.MessageDialog(self,"Fit already in progress. Only one fit may be run at the same time.", "Patience required...",style=wx.OK|wx.ICON_ERROR)
 				dlg.ShowModal()
 				## dialog box for already fitting...
+				
+	def CopyParams(self,order):
+		T_params = self.ThyPanel.fixed_paramlist_inputs + self.ThyPanel.fit_paramlist_inputs
+		F_params = self.FitPanel.fixed_paramlist_inputs + self.FitPanel.fit_paramlist_inputs
+
+		for fp, tp in zip(F_params,T_params):
+			if order==1:
+				# Theory to Fit
+				fp.SetValue(tp.GetValue())
+			elif order==2:
+				tp.SetValue(fp.GetValue())
+				
+		print 'Parameters Copied'
 			
+	def GetCurrentAxesLimits(self,fig):
+		displayed_axes = [i|j for i,j in \
+			zip(self.display_theory_curves,self.display_expt_curves)]
+		n_axes = displayed_axes.count(True)
+		
+		# get current axes limits
+		if len(fig.axes) > 0:
+			self.xlim = fig.axes[0].get_xlim()
+			j = 0
+			for i,displayed_ax in enumerate(displayed_axes):
+				if displayed_ax:
+					self.ylim[i] = fig.axes[j].get_ylim()
+					j += 1
+		
 
+	def OnAboutElecSus(self,event):
+		""" Show a message box about ElecSus """
+		dlg = wx.MessageDialog(self, NOTICE.noticestring, "About", wx.OK)
+		if dlg.ShowModal() == wx.ID_OK:
+			dlg.Destroy()
 
+	def OnAboutThis(self,event):
+		""" Show a message box about the program """
+		dlg = wx.MessageDialog(self, "ElecSus GUI\n\nA graphical interface for ElecSus, a program to calculate the weak-probe electric susceptibility of alkali atoms.\n\n Written in python using wxPython and matplotlib.\n\nCopyright 2016 James Keaveney and co-authors", "About", wx.OK)
+		if dlg.ShowModal() == wx.ID_OK:
+			dlg.Destroy()
+					
+	def OnAdvancedOptions(self,event):
+		""" Open the dialog box for adjusting advanced fit options """
+		dlg = AdvancedFitOptions(self,"Advanced Fit Options",wx.ID_ANY)
+		
+		# Show() rather than ShowModal() - doesn't halt program flow
+		if dlg.ShowModal() == wx.ID_OK:
+			self.advanced_fitoptions = dlg.return_all_options()
+			print self.advanced_fitoptions
+
+	def OnAutoscale(self,event):
+		self.Autoscale = bool(event.Checked())
+
+	def OnComputeButton(self,event):
+		""" Call elecsus to compute spectrum """
+		self.Call_ElecSus('Theory')
+
+	def OnCopyParamsTtoF(self,event):
+		self.CopyParams(1)
+
+	def OnCopyParamsFtoT(self,event):
+		self.CopyParams(2)
+
+	def OnCreateAxes(self,fig,canvas,clear_current=True):
+		""" (Re)Create as many sets of axes in the main figure as are needed, and label them all """
+
+		# calculate how many axes should be displayed - count if any elements of display_expt/theory_curves are true
+		displayed_axes = [i|j for i,j in \
+			zip(self.display_theory_curves,self.display_expt_curves)]
+		n_axes = displayed_axes.count(True)
+		
+		#if not self.Autoscale:
+		#	# get current axes limits
+		#	self.xlim = fig.axes[0].get_xlim()
+		#	for i,displayed_ax in enumerate(displayed_axes):
+		#		if displayed_ax:
+		#			self.ylim[i] = 0
+			
+		# clear figure and start again from nothing if number of axes has changed, or if hold is off
+		if clear_current:
+			fig.clf()
+		if n_axes != len(fig.axes):
+			fig.clf()
+		
+		# create bare axes, all equal sizes
+		if n_axes == 0:
+			n_axes = 1
+		
+		fig.add_subplot(n_axes,1,1)
+		i=0
+		for i in range(1,n_axes):
+			fig.add_subplot(n_axes,1,i+1,sharex=fig.axes[0])
+		
+		
+		# Testing:
+		#print self.display_expt_curves
+		#print self.y_expt_arrays
+		
+		## PLOT BASED ON BOOL DISPLAY_x_CURVE
+		i=0
+		for displayT,displayE,yt,xe,ye,ylabel in zip(self.display_theory_curves,self.display_expt_curves,\
+								self.y_arrays,self.x_expt_arrays,self.y_expt_arrays,self.plot_ylabels):
+			try:
+				#print i
+				ax = fig.axes[i]
+			except:
+				pass
+			if displayE and ye is not None:
+				#if isinstance(ye, (list,tuple)):
+				#	for xi,yi in zip(xe,ye):
+				#		ax.plot(xi,yi,color=d_grey)
+				#else:
+				ax.plot(xe,ye,color=d_olive)
+			if displayT and yt is not None:
+				if isinstance(yt, (list,tuple)):
+					for yi in yt:
+						ax.plot(self.x_array,yi)
+				else:
+					ax.plot(self.x_array,yt)
+			if displayT or displayE:
+				ax.set_ylabel(ylabel)
+				i += 1
+			
+		# set x axis label and rescale all axes to fit data
+		fig.axes[-1].set_xlabel('Detuning (GHz)')
+		if self.Autoscale:
+			for ax in fig.axes:
+				ax.autoscale_view(tight=True)
+		else:
+			fig.axes[0].set_xlim(self.xlim)
+			j = 0
+			for i,displayed_ax in enumerate(displayed_axes):
+				if displayed_ax:
+					fig.axes[j].set_ylim(self.ylim[i])
+					j += 1
+
+		#fig.axes[-1].set_xlim(self.xrange)
+		
+		# remove the rest of the x tick labels from all but the bottom panel
+		for ax in fig.axes[:-1]:
+			plt.setp(ax.get_xticklabels(),visible=False)
+		
+		#print 'Created '+str(n_axes)+' axes'
+		
+		# update the plot window
+		self._draw_fig(fig,canvas)
+	
+	def OnCreateResidualPlot(self,fig,canvas):
+		"""
+		Create a plot with main data, residuals and (optionally) histogram of residuals, using
+		subplot2grid in matplotlib 
+		"""
+		
+		fig.clf()
+		
+		print 'Debugging...'
+		print self.fit_datatype
+		print self.y_optimised
+		
+		#normalised_residuals = False
+		if self.normalised_residuals:
+			### not done yet! -- requires error bars in imported data
+			residuals = 100*(self.y_fit_array-self.y_optimised)
+		else:
+			residuals = 100*(self.y_fit_array-self.y_optimised)
+		
+		fig = plt.figure(2)
+		yy = 4
+		xx = 6
+		if self.residual_histogram:
+			ax_main = plt.subplot2grid((yy,xx),(0,0),colspan=xx-1,rowspan=yy-1)
+			ax_residual = plt.subplot2grid((yy,xx),(yy-1,0),colspan=xx-1,sharex=ax_main)
+			ax_hist = plt.subplot2grid((yy,xx), (yy-1,xx-1), sharey=ax_residual)
+
+			plt.setp(ax_hist.get_yticklabels(),visible=False)
+			ax_hist.set_xticklabels([])
+
+		else:
+			ax_main = plt.subplot2grid((yy,xx),(0,0),colspan=xx,rowspan=yy-1)
+			ax_residual = plt.subplot2grid((yy,xx),(yy-1,0),colspan=xx,sharex=ax_main)
+			
+		plt.setp(ax_main.get_xticklabels(),visible=False)
+		
+		ax_residual.set_xlabel('Detuning (GHz)')
+		ax_residual.set_ylabel('Residuals (%)')
+
+		ax_main.set_ylabel(self.expt_type)
+		
+		ax_main.plot(self.x_fit_array,self.y_fit_array,color=d_olive)
+		print len(self.x_fit_array), len(self.y_optimised)
+		ax_main.plot(self.x_fit_array,self.y_optimised)
+		ax_residual.plot(self.x_fit_array,residuals,lw=1.25)
+		ax_residual.axhline(0,color='k',linestyle='dashed')
+		
+		if self.residual_histogram:
+			bins = 25
+			ax_hist.hist(residuals, bins=bins, orientation='horizontal')
+
+		ax_main.autoscale_view(tight=True)
+		
+		self._draw_fig(fig,canvas)
+
+	def OnDataProcessing(self,event):
+		""" Open the dialog box for binning / smoothing data """
+		if self.x_fit_array is not None:
+			dlg = DataProcessingDlg(self, "Data Processing", wx.ID_ANY)
+			if dlg.Show() == wx.ID_OK:
+				dlg.Destroy()	
+		else:
+			dlg = wx.MessageDialog(self,"Can't process data that hasn't been loaded...", "Nope.", wx.OK|wx.ICON_INFORMATION)
+			dlg.ShowModal()
+			
+	def OnExit(self,event):
+		""" What to do when the window is closed """
+		## explicitly close all figures (bug with matplotlib and wx??)
+		plt.close('all')
+		self.Destroy()
+		
+	def OnFileOpen(self,event):
+		""" 
+		Open a csv data file and plot the data. Detuning is assumed to be in GHz. 
+		Vertical units are assumed to be the same as in the theory curves 
+		"""
+		self.dirname= ''
+		dlg_choice = wx.SingleChoiceDialog(self,"Choose type of data to be imported","Data import",choices=OutputTypes)
+		
+		# wait for OK to be clicked
+		if dlg_choice.ShowModal() == wx.ID_OK:
+			choice = dlg_choice.GetSelection()
+			#print 'Choice:', choice
+			self.expt_type = OutputTypes[choice]
+			# use the choice index to select which axes the data appears on	- may be different 
+			# if axes order is rearranged later?
+			self.choice_index = OutputTypes_index[choice]
+			#print self.choice_index
+			
+			dlg_choice.Destroy()
+		
+			dlg_open = wx.FileDialog(self,"Choose 2-column csv file (Detuning, Transmission)",
+									self.dirname,"","*.csv",wx.OPEN)
+			
+			# if OK button clicked, open and read file
+			if dlg_open.ShowModal() == wx.ID_OK:
+				#set experimental display on, and update menus
+				self.display_expt_curves[self.choice_index] = True
+				self.showEplotsSubMenu.GetMenuItems()[self.choice_index].Check(True)
+			
+				self.filename = dlg_open.GetFilename()
+				self.dirname = dlg_open.GetDirectory()
+				#call read
+				self.x_expt_arrays[self.choice_index],self.y_expt_arrays[self.choice_index] = read_CSV(os.path.join(self.dirname,self.filename),spacing=0)
+				
+				#overwrite fit_array data - i.e. last data to be loaded
+				self.x_fit_array = self.x_expt_arrays[self.choice_index]
+				self.y_fit_array = self.y_expt_arrays[self.choice_index]
+				
+				# implicit that the fit type is the same as last data imported
+				self.fit_datatype = self.expt_type
+				
+				## create main plot				
+				self.OnCreateAxes(self.figs[0],self.canvases[0],clear_current=True)
+				
+				
+			dlg_open.Destroy()
+
+	def OnFitBounds(self,event):
+		dlg = FitBoundsDialog(self,"Fit Bounds", wx.ID_ANY)
+		
+		if dlg.ShowModal() == wx.ID_OK:
+			self.fit_bounds = dlg.OnUpdateRange()
+			#print self.fit_bounds	
+			
+	def OnFitButton(self,event):
+		""" Call elecsus to fit data. Some sanity checking takes place first. """
+
+		## check for things that will prevent fitting from working, e.g. no data loaded - halt fitting if found
+		if self.y_fit_array == None:
+			#warn about no data present
+			dlg = wx.MessageDialog(self, "No experimental data has been loaded, cannot proceed with fitting...", "No no no", wx.OK|wx.ICON_EXCLAMATION)
+			dlg.ShowModal()
+			return
+		
+		self.fit_bools = [checkbox.IsChecked() for checkbox in self.FitPanel.fit_paramlist_bools]
+		if self.fit_bools.count(True) == 0:
+			dlg = wx.MessageDialog(self, "No fit parameters are floating, cannot proceed with fitting...", "No no no", wx.OK|wx.ICON_EXCLAMATION)
+			dlg.ShowModal()
+			return
+		
+		## check for non-optimal conditions and warn user
+		if self.warnings:
+			## if number of booleans > 3 and ML fitting selected, warn about fitting methods
+			if self.fit_bools.count(True) > 3 and self.fit_algorithm=='Marquardt-Levenberg':
+				dlg = wx.MessageDialog(self, "The number of fitted parameters is large and the Marquardt-Levenberg algorithm is selected. There is a high probability that the fit will return a local minimum, rather than the global minimum. \n\nTo find the global minimum more reliably, consider changing to either Random-Restart or Simulated Annealing algorithms.\n\n Continue with fitting anyway?", "Warning", wx.YES|wx.NO|wx.ICON_WARNING)
+				
+				if dlg.ShowModal() == wx.ID_NO:
+					return
+				
+			## if large number of data points
+			if len(self.x_fit_array) > 5000:
+				dlg = wx.MessageDialog(self, "The number of data points is quite high and fitting may be very slow, especially with Random-Restart or Simulated Annealing methods. \n\nConsider reducing the number of data points by binning data (Menu Fit --> Data Processing... --> Bin Data).\n\n Continue with fitting anyway?", "Warning", wx.YES|wx.NO|wx.ICON_WARNING)
+
+				if dlg.ShowModal() == wx.ID_NO:
+					return
+			
+		# If all conditions satisfied, start the fitting process
+		self.Call_ElecSus('Fit')
+		
 	def OnFitCompleted(self,event):
 		""" Task to complete after fitting completed """
 		self.FitInformation.write('\n============== Fit Completed ============ \n\n')
@@ -2042,7 +1985,8 @@ class ElecSus_GUI_Frame(wx.Frame):
 		self.y_arrays[4] = [spectrum_data[4],spectrum_data[5]] # Ix,Iy
 		self.y_arrays[5] = [spectrum_data[9],spectrum_data[10]] # alpha+,alpha-
 		self.y_arrays[6] = [spectrum_data[6],spectrum_data[7]] # n-,n+
-		self.y_arrays[7] = spectrum_data[8] # Faraday rotation angle phi
+		self.y_arrays[8] = spectrum_data[8] # Faraday rotation angle phi
+		self.y_arrays[7] = [spectrum_data[11],spectrum_data[12]]
 		
 		# update main plot
 		# turn on theory curve for the type of plot we just fitted..
@@ -2072,11 +2016,249 @@ class ElecSus_GUI_Frame(wx.Frame):
 		dlg.Destroy()
 
 		# create/update residuals plot
-		self.OnCreateResidualPlot(self.figs[1],self.canvases[1])				
+		self.OnCreateResidualPlot(self.figs[1],self.canvases[1])	
+
+	def OnFitPlotSelection(self,event):
+		""" Select plots to show, via the popup button on the main panel """
+		btn = event.GetEventObject()
+		pos = btn.ClientToScreen( (0,0) )
+		dlg = PlotSelectionDialog(self.panel,self,'Fit Plots Shown:','Fit',pos)
+ 		
+		if dlg.Show() == wx.ID_OK:
+			dlg.Destroy()
+			
+	def OnFitTypeChangePanel(self,event):
+		""" Action to perform when fit type is changed """
+		#print self.fittypeSubMenu.GetMenuItems()
+		print ''
+		for panelitem in self.FitPanel.fit_types:
+			if panelitem.GetValue():
+				self.fit_algorithm = panelitem.GetLabel()
+				#self.fittypeSubMenu.Check(idfit,True)
+				#self.OnFitTypeChangeMenu(1)
+				print 'Fit Algorithm changed to:', self.fit_algorithm
+
+			#self.fittypeSubMenu.Check(idfit,False)
+			#print menuitem.IsChecked()
+
+	def OnFitWarnings(self,event):
+		""" 
+		Warn about bad fitting practices - e.g. when there are many data points to fit, or many
+		fit parameters where the fit algorithm could be improved.
+		"""
+		self.warnings = bool(event.Checked())
+
+	def OnGridToggleMain(self,event):
+		""" Toggle axes grid on main plot """
+		for ax in self.figs[0].axes:
+			ax.grid(bool(event.Checked()))
+		self._draw_fig(self.figs[0],self.canvases[0])
+					
+	def OnGridToggleRes(self,event):
+		""" Toggle axes grid on residuals plot """
+		for ax in self.figs[1].axes:
+			ax.grid(bool(event.Checked()))
+		self._draw_fig(self.figs[1],self.canvases[1])
+
+	def OnLivePlotting(self,event):
+		""" 
+		Turn on/off live plotting when parameters are changed. 
+		Main plot updates in pseudo-realtime, rather than having to click 'compute' every time
 		
-##
-## Other global functions
-##
+		This method binds or unbinds a call to the compute button each time a control is changed.
+		"""
+		LivePlotOn = bool(event.Checked())
+		
+		if LivePlotOn:
+			for ctrl in self.ThyPanel.DetuningCtrl + self.ThyPanel.fit_paramlist_inputs:
+				self.Bind(EVT_FLOATSPIN, self.OnComputeButton, ctrl)
+			
+			for ctrl in self.ThyPanel.fixed_paramlist_inputs[0:2]:
+				self.Bind(wx.EVT_COMBOBOX, self.OnComputeButton, ctrl)
+			
+			self.LiveEventsBound = True
+		else:
+			# unbind the events, if currently bound
+			if self.LiveEventsBound:
+				# unbind
+				for ctrl in self.ThyPanel.DetuningCtrl + self.ThyPanel.fit_paramlist_inputs:
+					self.Unbind(EVT_FLOATSPIN, ctrl)
+
+				for ctrl in self.ThyPanel.fixed_paramlist_inputs[0:2]:
+					self.Unbind(EVT_FLOATSPIN, ctrl)
+				
+			self.LiveEventsBound = False
+
+	def OnLoadConfig(self,event):
+		"""
+		Load previous configuration settings from pickle file, for picking up where you left off...
+		"""
+		dlg = wx.MessageDialog(self, "Load previous configuration of the program - theory/fit parameters, plot settings etc...\n\nNot implemented yet...", "No no no", wx.OK)
+		dlg.ShowModal()
+		
+		## do the opposite of save config ...
+
+	def OnPlotHold(self,event):
+		""" 
+		Toggle plot hold (keep data on updating figure) on/off
+		Allows multiple data sets to be shown on same plot
+		"""
+		#self.PlotHold = bool(event.Checked())
+		#self.figs[0].hold(self.PlotHold)
+		dlg = wx.MessageDialog(self, "Not implemented yet...", "No no no", wx.OK)
+		dlg.ShowModal()
+			
+	def OnPlotLegend(self,event):
+		""" Toggle plot legend on/off """
+		self.legendOn = bool(event.Checked())
+	
+	def OnResHist(self,event):
+		""" Turn histogram of residuals on/off """
+		self.residual_histogram = bool(event.Checked())
+		self.OnCreateResidualPlot(self.figs[1],self.canvases[1])
+							
+	def OnSaveConfig(self,event):
+		""" 
+		Save present configuration settings - plot types, data ranges, parameters ... for faster repeating of common tasks
+		"""
+		
+		dlg = wx.MessageDialog(self, "Save current configuration of the program - theory/fit parameters, plot settings etc...\n\nNot implemented yet...", "No no no", wx.OK)
+		dlg.ShowModal()
+
+		data_dump = [0]
+		
+		# get plot settings
+		# ...
+		# get theory tab settings
+		# ...
+		# get fit tab settings
+		# ...
+		# get mist settings
+		# ...
+		
+		## filedialog window for selecting filename/location
+		filename = './elecsus_gui_config.dat'
+		
+		# save data in python-readable (binary) format using pickle module
+		with open(filename,'wb') as file_obj:
+			pickle.dump(data_dump, file_obj)
+	
+	def OnSaveCSVData(self,event):
+		""" 
+		Method to save the main plot data traces as a n-column csv file. 
+		
+		*All* data is saved, whether or not it is displayed 
+		
+		This method selects the file name, then passes that to SaveTheoryCurves()
+		"""
+		
+		SaveFileDialog = wx.FileDialog(self,"Save Output File", "./", "Outputs",
+			"CSV files (*.csv)|*.csv", wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
+		
+		if SaveFileDialog.ShowModal() == wx.ID_OK:
+			output_filename = SaveFileDialog.GetPath()
+			SaveFileDialog.Destroy()
+			
+			print output_filename
+			
+			# don't need this - FD_OVERWRITE_PROMPT does the same job
+			#check for overwrite current files
+			#if os.path.isfile(output_filename):
+			#	OverwriteDialog = wx.MessageDialog(self,"Warning: file exists already! Overwrite?",\
+			#		"Overwrite?",wx.YES_NO|wx.NO_DEFAULT)
+			#	
+			#	if OverwriteDialog.ShowModal() == wx.NO:
+			#		OverwriteDialog.Destroy()
+			#		return # exit without saving
+			#	else:
+			#		OverwriteDialog.Destroy()
+			
+			## do save
+			self.SaveTheoryCurves(output_filename)
+
+	def OnSaveFig(self,event):
+		""" Basically the same as saving the figure by the toolbar button. """
+		#widcards for file type selection
+		wilds = "PDF (*.pdf)|*.pdf|" \
+				"PNG (*.png)|*.png|" \
+				"EPS (*.eps)|*.eps|" \
+				"All files (*.*)|*.*"
+		exts = ['.pdf','.png','.eps','.pdf'] # default to pdf
+		SaveFileDialog = wx.FileDialog(self,message="Save Figure", defaultDir="./", defaultFile="figure",
+			wildcard=wilds, style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
+		SaveFileDialog.SetFilterIndex(0)
+		
+		if SaveFileDialog.ShowModal() == wx.ID_OK:
+			output_filename = SaveFileDialog.GetPath()
+			if output_filename[-4:] == exts[SaveFileDialog.GetFilterIndex()]:
+				output_filename = output_filename[:-4]
+			
+			#save all current figures
+			for fig, id in zip(self.figs, self.fig_IDs):
+				fig.savefig(output_filename+'_'+str(id)+exts[SaveFileDialog.GetFilterIndex()])
+				
+		SaveFileDialog.Destroy()
+	
+	def OnShowEplots(self,event):
+		""" Action when plot type is changed from the menu """
+		for ii, item in enumerate(self.showEplotsSubMenu.GetMenuItems()):
+			if item.IsChecked():
+				self.display_expt_curves[ii] = True
+			else:
+				self.display_expt_curves[ii] = False
+		
+		#redraw plot
+		self.OnCreateAxes(self.figs[0],self.canvases[0])
+
+	def OnShowTplots(self,event):
+		""" Action when plot type is changed from the menu """
+		for ii, item in enumerate(self.showTplotsSubMenu.GetMenuItems()):
+			if item.IsChecked():
+				self.display_theory_curves[ii] = True
+			else:
+				self.display_theory_curves[ii] = False
+		
+		#redraw plot
+		self.OnCreateAxes(self.figs[0],self.canvases[0])			
+
+	def OnTheoryPlotSelection(self,event):
+		""" Select plots to show, via the popup button on the main panel """
+ 		
+		btn = event.GetEventObject()
+		pos = btn.ClientToScreen( (0,0) )
+		dlg = PlotSelectionDialog(self.panel,self,'Theory Plots Shown:','Theory',pos)
+        
+		if dlg.Show() == wx.ID_OK:
+			dlg.Destroy()
+
+	def OnUseExpDetuning(self,event):
+		""" Action when Menu Item 'Use Experimental Detuning' is clicked """
+		if self.x_fit_array is not None:
+			# only do anything if data has been loaded already
+			self.UseExpDetuning = bool(event.Checked())
+			self.OnComputeButton(1)
+		else:
+			problem_dlg = wx.MessageDialog(self, "No experimental data has been loaded yet", "No data to use", wx.OK|wx.ICON_ERROR)
+			problem_dlg.ShowModal()
+			self.eM_UseExpDetuning.Check(False)
+			
+	def SaveTheoryCurves(self,filename):
+		""" 
+		Method to actually do the saving of xy data to csv file. 
+		Separate to the OnSaveCSVData method in case a filename is automatically chosen
+		- i.e. when fitting data, there is an option to autosave the results which calls this method
+		"""
+		#print len(self.y_arrays)
+		#print self.y_arrays
+		xy_data = zip(self.x_array,self.y_arrays[0],self.y_arrays[1],self.y_arrays[2],self.y_arrays[3],\
+			self.y_arrays[4][0], self.y_arrays[4][1], self.y_arrays[5][0], self.y_arrays[5][1], \
+			self.y_arrays[6][0], self.y_arrays[6][1], self.y_arrays[7][0], self.y_arrays[7][1], self.y_arrays[8])
+		success = write_CSV(xy_data, filename, titles=['Detuning']+OutputTypes)
+		if not success:
+			problem_dlg = wx.MessageDialog(self, "There was an error saving the data...", "Error saving", wx.OK|wx.ICON_ERROR)
+			problem_dlg.ShowModal()
+
+##############
 
 def read_CSV(filename,spacing=0,columns=2):
 	""" Read an n-column csv file. Return data as n numpy arrays """
@@ -2133,6 +2315,7 @@ def write_CSV(xy,filename,titles=None):
 ## Run the thing...
 def start():
 	print 'Starting ElecSus GUI...'
+	global app
 	app = wx.App(redirect=False)
 	frame = ElecSus_GUI_Frame(None,"ElecSus GUI")
 				
@@ -2140,7 +2323,7 @@ def start():
 	frame.Show()
 	app.MainLoop()
 	print '...Closed ElecSus GUI'
-	
+
 if __name__ == '__main__':
 	start()
 	

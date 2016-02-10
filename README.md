@@ -1,5 +1,5 @@
 ==============
-ElecSus v2.1.0
+ElecSus v2.2.0
 ==============
 
 A program to calculate the electric susceptibility of an atomic ensemble.
@@ -70,7 +70,7 @@ packages:
 	- Scipy version 0.12.0 or later
 	- Numpy
 	- Matplotlib
-	- wxPython 2.8 (for GUI)
+	- wxPython >= 2.8 (for GUI)
 
 
 ------------
@@ -154,6 +154,25 @@ Apache License, Version 2.0. A Copy of the license is provided.
 Change Log
 -----------
 
+V 2.2.0
+
+	- GUI version number and ElecSus version number are now the same
+	- Since Enthought Canopy now ships with wxPython version 3.0, GUI has been
+		updated to work with this version of wxPython. All previous functionality should 
+		remain the same, but a few things have changed:
+			- Theory/Fit plot selections are no longer Transient Popups - they are now Dialog Boxes
+			- Default plot scaling may look a bit odd when viewing on small resolution monitors -
+				not sure what the real fix for this is, but as a workaround, resizing the GUI window
+				should fix this
+	- Added ability to use experimental detuning axis on theory curve, 
+		for direct comparison when outputting data (Menu > Edit > Use Experimental Detuning Axis)
+	- Added ability to turn off automatic scaling of axes (Menu > View > Autoscale)
+	- Fixed an issue where save files would not save correctly after performing a fit
+	- Minor fix for an issue where starting from the python interpreter would not exit properly on clicking the 'X'
+	- Corrected some incorrect tooltips
+	- Added show_versions() method to elecsus_gui.py, which shows the currently used version numbers of 
+		modules important to running this program
+		
 V 2.1.0
 
 	- Cleaned up a lot of code in the spectra.py module. Added new methods (calc_chi, get_spectra) to spectra.py that allow users to easily create wrapper methods to return custom data types that aren't returned by default. Separated the method to calculate electric field propagation (get_Efield), for use with non-uniform B fields. Backward compatibility is preserved with the spectrum() method, which is now just a wrapper for get_spectra().

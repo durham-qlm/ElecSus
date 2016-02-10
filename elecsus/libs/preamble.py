@@ -67,8 +67,10 @@ in an axial magnetic field (which sets the quantisation axis) half the light dri
 'Doppler Temperature sets the Doppler width',
 'Percentage of Rubidium-85 isotope. Default value is natural abundance. (72% Rb85, 28% Rb87)\n\
 Obviously this has no effect when the element is set to something other than Rb',
-'Percentage of Potassium-40 isotope. Default value is natural abundance. (99% Rb85, 28% Rb87)\n\
-Obviously this has no effect when the element is set to something other than Rb',
+'Percentage of Potassium-40 isotope. Default value is natural abundance. (93.28% K39, 0.01%K40, 6.73% K41)\n\
+Obviously this has no effect when the element is set to something other than K',
+'Percentage of Potassium-41 isotope. Default value is natural abundance. (93.28% K39, 0.01%K40, 6.73% K41)\n\
+Obviously this has no effect when the element is set to something other than K'
 ]
 parameter_adjust_tooltip = \
 '\n\n\nShortcuts for faster adjustment of parameters:\n\

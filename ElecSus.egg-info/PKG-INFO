@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: ElecSus
-Version: 2.1.0
+Version: 2.2.0
 Summary: (Atomic Physics) Calculate the weak-probe electric susceptibility for alkali-metal vapours
 Home-page: https://github.com/jameskeaveney/ElecSus
 Author: James Keaveney, Mark Zentile et. al.
