@@ -934,7 +934,7 @@ class DataProcessingDlg(wx.Dialog):
 		self.parent.x_expt_arrays[cindex] = self.parent.x_fit_array
 		self.parent.y_expt_arrays[cindex] = self.parent.y_fit_array
 
-		self.parent.OnCreateAxes(self.parent.figs[0],self.parent.canvases[0],clear_current=False)
+		self.parent.OnCreateAxes(self.parent.figs[0],self.parent.canvases[0],clear_current=True)
 						
 class AdvancedFitOptions(wx.Dialog):
 	def __init__(self,parent,title,id):
@@ -1109,14 +1109,15 @@ class ElecSus_GUI_Frame(wx.Frame):
 		self._init_panels()
 		
 		## redirect stdout (command line text) to status box
-		#sys.stdout = self.StatusPanel
-		#sys.stderr = self.ErrorPanel
+		sys.stdout = self.StatusPanel
+		sys.stderr = self.ErrorPanel
 		
 		# Create initially blank set of axes
 		#self.OnCreateAxes(self.figs[0],self.canvases[0])
 		
 		## Bind the event EVT_FIT_COMPLETE to function
-		## This executes in the main thread once the fitting thread (separate from the main thread) completes
+		## This executes in the main thread once the fitting thread 
+		## (separate from the main thread) completes
 		self.Bind(EVT_FIT_COMPLETE,self.OnFitCompleted)
 						
 	def _init_default_values(self):

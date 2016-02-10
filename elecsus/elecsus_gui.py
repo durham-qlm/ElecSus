@@ -934,7 +934,7 @@ class DataProcessingDlg(wx.Dialog):
 		self.parent.x_expt_arrays[cindex] = self.parent.x_fit_array
 		self.parent.y_expt_arrays[cindex] = self.parent.y_fit_array
 
-		self.parent.OnCreateAxes(self.parent.figs[0],self.parent.canvases[0],clear_current=False)
+		self.parent.OnCreateAxes(self.parent.figs[0],self.parent.canvases[0],clear_current=True)
 						
 class AdvancedFitOptions(wx.Dialog):
 	def __init__(self,parent,title,id):
