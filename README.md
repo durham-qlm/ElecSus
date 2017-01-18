@@ -8,6 +8,9 @@ of thermal alkali metal vapour cells. The program also includes fitting
 routines which allow experimental parameters to be extracted from 
 experimental spectroscopic data.
 
+An alternate GUI based on the TraitsUI interface has been developed by Matthias Widman
+and co-authors and is available here: https://github.com/matwid/ElecSus
+
 --------------------
 New in version 2.0
 --------------------
