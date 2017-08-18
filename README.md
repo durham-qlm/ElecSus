@@ -1,39 +1,26 @@
 ElecSus v3.0.0: Extension to Arbitrary magnetic field vectors
 ==============
 
-A program to calculate the electric susceptibility of an atomic ensemble.
-The program is designed to model weak-probe laser spectra on the D-lines
-of thermal alkali metal vapour cells. The program also includes fitting 
-routines which allow experimental parameters to be extracted from 
-experimental spectroscopic data.
+A program to calculate the electric susceptibility of an atomic ensemble. The program is designed to model weak-probe laser spectra on the D-lines of thermal alkali metal vapour cells. The program also includes fitting routines which allow experimental parameters to be extracted from experimental spectroscopic data.
 
-An alternate GUI based on the TraitsUI interface has been developed by Matthias Widman
-and co-authors and is available here: https://github.com/matwid/ElecSus (Note this is for ElecSus v2.2.0)
+An alternate GUI based on the TraitsUI interface has been developed by Matthias Widman and co-authors and is available here: https://github.com/matwid/ElecSus (Note this is for ElecSus v2.2.0)
 
 --------------------
 New in version 3.0
 --------------------
 
 -	**Major overhaul** that adds much additional functionality. See the new paper (https://arxiv.org/abs/1708.05305) for the full details. In brief, the additions are
-
--- To include calculation for an arbitrary angle between magnetic field axis and light propagation vector, 
+    - To include calculation for an arbitrary angle between magnetic field axis and light propagation vector, 
 	in part based on the publication by Rotondaro, Zhdanov and Knize [ J. Opt. Soc. Am. B 32, 12, 2507 (2015) ] and references therein.
 	
--- A more general approach to light propagation, with the input polarisation more rigorously defined. 
-	*This change makes this version	backwards incompatible with the previous (v1.x.x, v2.x.x) versions*, since now we explicitly calculate 
-	the electric field at the exit of the medium and use Jones matrices/vectors to compute the Stokes parameters and other derived quantities. 
-	This also has the benefit of enabling the simulation of, for example: magnetic field gradients; polarising optical elements; birefringence or other optical imperfections.
+    - A more general approach to light propagation, with the input polarisation more rigorously defined. 
+	*This change makes this version	backwards incompatible with the previous (v1.x.x, v2.x.x) versions*, since now we explicitly calculate the electric field at the exit of the medium and use Jones matrices/vectors to compute the Stokes parameters and other derived quantities. This also has the benefit of enabling the simulation of, for example: magnetic field gradients; polarising optical elements; birefringence or other optical imperfections.
 
--- The GUI has been significantly changed to accomodate the extra magnetic field and polarisation options.
+    - The GUI has been significantly changed to accomodate the extra magnetic field and polarisation options.
 
--- The old runcard method of calling elecsus is now dead and buried, since it's no longer compatible with the current version.
+    - The old runcard method of calling elecsus is now dead and buried, since it's no longer compatible with the current version.
 
--- The fitting routines have been completely rewritten to use parameter dictionaries. We now utilise the lmfit module (https://lmfit.github.io/lmfit-py/), 
-	instead of the vanilla scipy least-square minimisation modules. Performance is broadly similar (since lmfit also runs over the top of scipy.optimize modules, 
-	but there are many advantages of this model: Firstly, all parameters can now be selected to vary during a fit or be held constant, and bounds for these 
-	parameters can be given to prevent unphysical values from being returned. In addition, the differential_evolution solver is now availablle, which is very 
-	efficient at finding the global minimum for multi-parameter fits (we leave in random_restat and simulated_annealing for now, though these might disappear 
-	in future versions as it appears differential_evolution is much better in all tested cases so far...).
+    - The fitting routines have been completely rewritten to use parameter dictionaries. We now utilise the lmfit module (https://lmfit.github.io/lmfit-py/), instead of the vanilla scipy least-square minimisation modules. Performance is broadly similar (since lmfit also runs over the top of scipy.optimize modules, but there are many advantages of this model: Firstly, all parameters can now be selected to vary during a fit or be held constant, and bounds for these parameters can be given to prevent unphysical values from being returned. In addition, the differential_evolution solver is now availablle, which is very efficient at finding the global minimum for multi-parameter fits (we leave in random_restart and simulated_annealing for now, though these might disappear in future versions as it appears differential_evolution is much better in all tested cases so far - see elecsus/tests/fitting_tests.py for examples).
 		
 -------------
 Prerequisites
@@ -60,7 +47,9 @@ Python and required packages must be installed prior to installing ElecSus.
 
 - For linux-based systems, download or clone this repository and navigate to the download location in a terminal window. Install using the setup.py file by typing
 	
-	> python setup.py install
+    ```
+    python setup.py install
+    ```
 
 - Note the GUI part of ElecSus is currently untested on Mac OSX!
 
@@ -72,16 +61,19 @@ Usage
 
 - After package installation, from the python interpreter type:
 
-	> from elecsus import elecsus_gui
-	
-	> elecsus_gui.start()
+    ```
+    from elecsus import elecsus_gui
+    elecsus_gui.start()
+    ```
 
 - In windows, double-click on the run_gui.bat file in the elecsus directory
 
 - Alternately, open a terminal or command-line window and navigate to the ElecSus directory. Type:
 
-	> python elecsus_gui.py
-	
+    ```
+    python elecsus_gui.py
+    ```
+
 
 2. For integration into external code:
 
@@ -93,12 +85,12 @@ Usage
 Manual
 ------
 
-For GUI documentation, see docs/ElecSus_GUI_UserGuide.pdf (finally updated!)
+For GUI documentation, see docs/ElecSus_GUI_UserGuide.pdf
 
 For the original ElecSus paper, go to http://dx.doi.org/10.1016/j.cpc.2014.11.023
 and download the paper. It is published open-access and therefore freely available.
 
-For the ElecSus paper that goes with version 3.0.0, see XXXXXXXXXXXXXX link.
+For the ElecSus paper that goes with version 3.0.0, see the pre-print at https://arxiv.org/abs/1708.05305.
 
 -------
 License
@@ -124,8 +116,8 @@ V 2.2.0
 - Since Enthought Canopy now ships with wxPython version 3.0, GUI has been
 	updated to work with this version of wxPython. All previous functionality should 
 	remain the same, but a few things have changed:
-		- Theory/Fit plot selections are no longer Transient Popups - they are now Dialog Boxes
-		- Default plot scaling may look a bit odd when viewing on small resolution monitors -
+    - Theory/Fit plot selections are no longer Transient Popups - they are now Dialog Boxes
+	- Default plot scaling may look a bit odd when viewing on small resolution monitors -
 			not sure what the real fix for this is, but as a workaround, resizing the GUI window
 			should fix this
 - Added ability to use experimental detuning axis on theory curve, 
