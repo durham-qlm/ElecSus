@@ -1,4 +1,3 @@
-==============
 ElecSus v3.0.0: Extension to Arbitrary magnetic field vectors
 ==============
 
