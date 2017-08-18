@@ -20,170 +20,180 @@ Random restart fitting routine.
 Fit by taking a random sample around parameters and then
 fit using Marquardt-Levenberg.
 
-Author: MAZ
-Updated 20/08/2015 to reflect changes in MLFittingRoutine (Author: JK)
+Complete rebuild of the original RR fitting module now using lmfit
 
+Author: JK
+2016-10-17
 """
 
-import numpy as N
-import random as R
+import numpy as np
+import matplotlib.pyplot as plt
 import warnings
 import sys
+import copy
+
+import psutil
 from multiprocessing import Pool
 
-from spectra import spectrum
 import MLFittingRoutine as ML
+import lmfit as lm
 
-def Cost(yData,yTheory):
-    '''
-    Function to evaluate the goodness of the fit, larger value is worse!
-    '''
-    #Sum of absolute value of difference
-    SumDiff = N.sum(N.absolute(yTheory-yData))
-    return SumDiff
+from spectra import get_spectra
 
+p_dict_bounds_default = {'lcell':1e-3,'Bfield':100., 'T':20., 
+							'GammaBuf':20., 'shift':100.,
+							# Polarisation of light
+							'theta0':10., 'E_x':0.05, 'E_y':0.05, 'E_phase':0.01, 
+							# B-field angle w.r.t. light k-vector
+							'Btheta':10*3.14/180, 'Bphi':10*3.14/180,
+							'DoppTemp':20.,
+							'rb85frac':1, 'K40frac':1, 'K41frac':1,
+							}
+	
 def evaluate(args):
-    #arguments = args
-    arguments, kw = args[:-1], args[-1]
-    warnings.simplefilter("ignore") #Stops the casting complex to real warning
-    parametersToFit = arguments[2:-2] 
-    bFitPar, spectr = ML.MLfit(arguments[0],arguments[1],
-                                parametersToFit,arguments[-2],**kw)
-    print 'Eval_ML COmplete'
-	
-    costValue = Cost(arguments[1],spectr)
-    #sys.stdout.flush()
-    #print arguments[-1],costValue,bFitPar[2],bFitPar[3],bFitPar[4], \
-    #       bFitPar[5],bFitPar[6],bFitPar[7],bFitPar[8],bFitPar[9], \
-    #       bFitPar[10]
-    return arguments[-1],costValue,bFitPar[2],bFitPar[3],bFitPar[4], \
-           bFitPar[5],bFitPar[6],bFitPar[7],bFitPar[8],bFitPar[9], \
-           bFitPar[10]
+	data = args[0]
+	E_in = args[1] 
+	p_dict = args[2]
+	p_dict_bools = args[3]
+	data_type = args[4]
+	best_params, result = ML.ML_fit(data, E_in, p_dict, p_dict_bools, data_type)
+	#print 'Eval_ML COmplete'
 
-def RRFit(xdata,ydata,initParams,paramBools,noEvals,**kw):
-    """ 
-	Write some stuff about this here...
-	
-	kwargs must be dictionary 
+	# returns reduced chi-squared value and best fit parameters
+	return result.redchi, best_params #, result
+
+def RR_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_type='S0',verbose=False):
 	"""
+	Random restart fitting method.
+
+	data:					an Nx2 iterable for the x and y data to be fitted
+	E_in:					the initial electric field input. See docstring for the spectra.py module for details.
+
+	no_evals:			The number of randomly-selected start points for downhill fitting. Defaults to 2**(3+2*nFitParams) where nFitParams is
+									the number of varying fit parameters
 	
-    print '\n\nStarting Random Restart Fitting Routine'
-    x = N.array(xdata)
-    y = N.array(ydata)
-    
-    #Default uncertainty on values
-    if paramBools[0]:
-        errBfield     = 1.5*initParams[2]/10.0 + 1.0
-    else:
-        errBfield     = 0.0
-
-    if paramBools[1]:
-        errNTemp      = 4*(initParams[3]+273.15)/100.0 + 0.1
-    else:
-        errNTemp      = 0.0
-
-    if paramBools[2]:
-        errcellLength = initParams[4]/25.0
-    else:
-        errcellLength = 0.0
-
-    if paramBools[3]:
-        errRb85       = initParams[5]/20.0 + 0.01
-    else:
-        errRb85       = 0.0
-
-    if paramBools[4]:
-        errDopTemp    = (initParams[6]+273.15)/50.0 + 0.1
-    else:
-        errDopTemp    = 0.0
-        
-    if paramBools[5]:
-        errTheta0     = 0.01
-    else:
-        errTheta0     = 0.0
-
-    if paramBools[6]:
-        errPol        = initParams[8]/10.0 + 0.01
-    else:
-        errPol        = 0.0
-    
-    if paramBools[7]:
-        errShift      = initParams[9]/4.0 + 0.5
-    else:
-        errShift      = 0.0
-        
-    if paramBools[8]:
-        errGamma      = initParams[10]/5.0 + 1.0
-    else:
-        errGamma      = 0.0
-    
-    #Fill arrays of random values scattered around given start
-    BfieldVals = N.zeros(noEvals)
-    BfieldVals[0] = initParams[2]
-    
-    NTempVals = N.zeros(noEvals)
-    NTempVals[0] = initParams[3]
-    
-    cellLengthVals = N.zeros(noEvals)
-    cellLengthVals[0] = initParams[4] 
-    
-    Rb85Vals = N.zeros(noEvals)
-    Rb85Vals[0] = initParams[5]
-    
-    DopTempVals = N.zeros(noEvals)
-    DopTempVals[0] = initParams[6]
-    
-    Theta0Vals = N.zeros(noEvals)
-    Theta0Vals[0] = initParams[7]
-
-    PolVals = N.zeros(noEvals)
-    PolVals[0] = initParams[8]
-    
-    ShiftVals = N.zeros(noEvals)
-    ShiftVals[0] = initParams[9]
-    
-    GammaVals = N.zeros(noEvals)
-    GammaVals[0] = initParams[10]       
-    
-    for i in xrange(1,noEvals):
-        BfieldVals[i]     = initParams[2] + errBfield*R.uniform(-1,1)
-        NTempVals[i]      = initParams[3] + errNTemp*R.uniform(-1,1)
-        cellLengthVals[i] = initParams[4] + errcellLength*R.uniform(-1,1)
-        Rb85Vals[i]       = initParams[5] + errRb85*R.uniform(-1,1)
-        DopTempVals[i]    = initParams[6] + errDopTemp*R.uniform(-1,1)
-        Theta0Vals[i]     = initParams[7] + errTheta0*R.uniform(-1,1)
-        PolVals[i]        = initParams[8] + errPol*R.uniform(-1,1)
-        ShiftVals[i]      = initParams[9] + errShift*R.uniform(-1,1)
-        GammaVals[i]      = initParams[10] + errGamma*R.uniform(-1,1)
-    
-    #Do parallel ML fitting by utilising multiple cores
-    po = Pool() # Pool() uses all cores, Pool(3) uses 3 cores for example.
-    res = po.map_async(evaluate,((x,y,initParams[0],initParams[1],BfieldVals[k],
-                                  NTempVals[k],cellLengthVals[k],Rb85Vals[k],
-                                  DopTempVals[k],Theta0Vals[k],PolVals[k],ShiftVals[k],
-                                  GammaVals[k],initParams[11],initParams[12],
-                                  initParams[13],initParams[14],initParams[15],
-                                  paramBools,k, kw) for k in xrange(noEvals))
-								  )
-    Results = res.get()
-    po.close()
-    po.join()
-    print 'RR calculation complete'
-
-    #Find best fit
-    Results = N.array(Results)
-    Results = Results.astype(N.float64)
-    lineMin = N.argmin(Results, axis=0)[1] ## pick the fit with the lowest cost value
-    indexmin = Results[lineMin][0]
-    bestCostValue = Results[lineMin][1]
-
-    bestFitParams = [initParams[0],initParams[1],
-                     Results[lineMin][2],Results[lineMin][3],Results[lineMin][4],
-                     Results[lineMin][5],Results[lineMin][6],Results[lineMin][7],
-                     Results[lineMin][8],Results[lineMin][9],Results[lineMin][10],
-					 initParams[11],initParams[12],initParams[13],initParams[14],initParams[15]]
-    
-    FinalTheory = spectrum(x,*bestFitParams)
+	p_dict:					dictionary containing all the calculation (initial) parameters
+	p_dict_bools:		dictionary with the same keys as p_dict, with Boolean values representing each parameter that is to be varied in the fitting
+	p_dict_bounds:	dictionary with the same keys as p_dict, with values that are pairs of min/max values that each parameter can take.
+									NOTE: this works slightly differently to p_dict_bounds in the other fitting methods. In RR fitting, the bounds
+									select the range in parameter space that is randomly explored as starting parameters for a downhill fit, rather than being
+									strict bounds on the fit parameters.
 	
-    return bestFitParams, FinalTheory
+	data_type:			Data type to fit experimental data to. Can be one of:
+									'S0', 'S1', 'S2', 'S3', 'Ix', 'Iy', ...
+	verbose:				Boolean - more print statements provided as the program progresses
 
+	"""
+
+	if p_dict_bounds is None:
+		p_dict_bounds = p_dict_bounds_default
+
+	print 'Starting Random Restart Fitting Routine'
+	x = np.array(data[0])
+	y = np.array(data[1])
+
+	p_dict['E_x'] = E_in[0]
+	p_dict['E_y'] = E_in[1][0]
+	p_dict['E_phase'] = E_in[1][1]
+
+	
+	# count number of fit parameters
+	nFitParams = 0
+	for key in p_dict_bools:
+		if p_dict_bools[key]: nFitParams += 1
+	
+	# default number of iterations based on number of fit parameters
+	if no_evals == None:
+		no_evals = 2**(3+2*nFitParams)
+		
+	# Create random array of starting parameters based on parameter ranges given in p_dict range dictionary
+	# Scattered uniformly over the parameter space
+	
+	#clone the parameter dictionary
+	p_dict_list = []
+	for i in range(no_evals):
+		p_dict_list.append(copy.deepcopy(p_dict))
+		
+	for key in p_dict_bools:
+		if p_dict_bools[key]==True:
+			start_vals = p_dict[key]
+			#print start_vals
+			for i in range(len(p_dict_list)):
+				p_dict_list[i][key] = start_vals + np.random.uniform(-1,1) * p_dict_bounds[key]
+				
+	if verbose:
+		print 'List of initial parameter dictionaries:'
+		for pd in p_dict_list:
+			print pd
+		#print p_dict_list
+		print '\n\n'
+	
+	#Do parallel ML fitting by utilising multiple cores
+	po = Pool() # Pool() uses all cores, Pool(3) uses 3 cores for example.
+	
+	## use lower process priority so computer is still responsive while calculating!!
+	parent = psutil.Process()
+	parent.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+	for child in parent.children():
+		child.nice(psutil.IDLE_PRIORITY_CLASS)
+	
+	args_list = [(data, E_in, p_dict_list[k], p_dict_bools, data_type) for k in range(no_evals)]
+	
+	Res = po.map_async(evaluate,args_list)
+	result = Res.get()
+	po.close()
+	po.join()
+	
+	if verbose: print 'RR calculation complete'
+
+	#Find best fit
+	result = np.array(result)
+	#print result
+	#result = result.astype(np.float64)
+	lineMin = np.argmin(result, axis=0)[0] ## pick the fit with the lowest cost value
+
+	best_values = result[lineMin][1] # best parameter dictionary
+	if verbose:
+		print '\n\n\n'
+		print best_values
+
+	p_dict_best = copy.deepcopy(p_dict)
+	p_dict_best.update(best_values)
+	
+	# Finally run the ML fitting one more time, using the best parameters 
+	# (so we get the final_result object, which cannot be pickled and therefore isn't supported in multiprocessing)
+	best_values, final_result = ML.ML_fit(data, E_in, p_dict_best, p_dict_bools, data_type)
+	
+	# return best fit parameters, and the lmfit result object
+	return best_values, final_result
+
+def test_fit():
+	p_dict = {'elem':'Rb','Dline':'D2','T':80.,'lcell':2e-3,'Bfield':600.,'Btheta':0.,
+		'Bphi':0.,'GammaBuf':0.,'shift':0.}
+	
+	# only need to specify parameters that are varied
+	p_dict_bools = {'T':True,'Bfield':True,'E_x':True}
+	p_dict_bounds = {'T':10,'Bfield':100,'E_x':0.01}
+	
+	E_in = np.array([0.7,0.7,0])
+	E_in_angle = [E_in[0].real,[abs(E_in[1]),np.angle(E_in[1])]]
+	
+	print E_in_angle
+	
+	x = np.linspace(-10000,10000,100)
+	[y] = get_spectra(x,E_in,p_dict,outputs=['S1']) + np.random.randn(len(x))*0.015
+		
+	data = [x,y.real]
+	
+	best_params, result = RR_fit(data, E_in_angle, p_dict, p_dict_bools, p_dict_bounds, no_evals = 8, data_type='S1')
+	report = result.fit_report()
+	fit = result.best_fit
+	
+	print report
+	plt.plot(x,y,'ko')
+	plt.plot(x,fit,'r-',lw=2)
+	plt.show()
+	
+if __name__ == '__main__':
+	test_fit()
+	

@@ -19,7 +19,7 @@ import time
 from elecsus.elecsus_gui import __version__
 
 
-print "\n\n NOTE: wxPython 2.8 needs to be installed for the\n\
+print "\n\n NOTE: wxPython >=2.8 needs to be installed for the\n\
 GUI part of this program to work! It is not currently possible\n\
 to install this automatically through setuptools / pip / easy_install.\n\
 \
@@ -33,27 +33,25 @@ time.sleep(1)
 setup(
 	name='ElecSus',
 	description='(Atomic Physics) Calculate the weak-probe electric susceptibility for alkali-metal vapours',
-	author='James Keaveney, Mark Zentile et. al.',
+	author='James Keaveney et. al.',
 	author_email='james.keaveney@durham.ac.uk',
 	url='https://github.com/jameskeaveney/ElecSus',	
 	version=__version__,
-	packages=['elecsus', 'elecsus.libs', 'elecsus.runcard'],
+	packages=['elecsus', 'elecsus.libs', 'elecsus.tests'],
 	package_data={'elecsus':['images/elecsus_group.ico',
 							'images/elecsus_t_group.ico',
 							'images/elecsus-logo.png',
 							'images/jqc-logo.png',
-							'sample_data/SampleData_Ix_RbD2.csv',
-							'sample_data/SampleData_S1_RbD2.csv',
-							'sample_data/SampleDataRbD1.csv',
-							'docs/ElecSus_GUI_UserGuide.pdf', 
-							'docs/Manual.pdf']},
+							'docs/ElecSus_GUI_UserGuide.pdf']},
 	license='Apache License, Version 2.0',
 	long_description=open('README.md').read(),
 	install_requires=[
-		#'wxPython == 2.8.11.0' ### wxPython is needed but can't be installed from PyPi.
+		#'wxPython >= 2.8.11.0' ### wxPython is needed but can't be installed from PyPi.
 		'numpy',
 		'scipy >= 0.12.0',
 		'matplotlib >= 1.3.1',
+		'lmfit >= 0.9.5',
+		'psutil'
 		],
 	classifiers=[
 		'Development Status :: 1 - Planning',

@@ -1,5 +1,4 @@
-# Copyright 2014 M. A. Zentile, J. Keaveney, L. Weller, D. Whiting,
-# C. S. Adams and I. G. Hughes.
+# Copyright 2017 J. Keaveney
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,30 +12,68 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+""" Variables used by the GUI. For formatting, default values etc."""
+
 # Button (vertical) size
 BtnSize = 30
 
 ## Master list of all output types that will be referenced for dynamic plotting
-OutputTypes = ['Transmission (S0)', 'S1', 'S2', 'S3', 'Ix', 'Iy', 'Alpha Plus', 'Alpha Minus', 'N Plus', 'N Minus','GI Plus', 'GI Minus','Phi']
+OutputTypes = ['Transmission (S0)', 'S1', 'S2', 'S3', 'Ix', 'Iy', 'I+45', 'I-45', 'Ircp', 'Ilcp', 'Alpha Plus', 'Alpha Minus', 'Alpha Z']
 # some of the outputtypes are grouped when plotting
-OutputTypes_index = [0,1,2,3,4,4,5,5,6,6,7,7,8]
-OutputPlotTypes = ['Transmission (S0)', 'S1', 'S2', 'S3', 'Ix, Iy', 'Alpha Plus/Minus', 'N Plus/Minus', 'GI Plus/Minus', 'Phi']
+OutputTypes_index = [0,1,2,3,4,4,5,5,6,6,7,7,7]
+OutputPlotTypes = ['Transmission (S0)', 'S1', 'S2', 'S3', 'Ix, Iy', 'I+45 / I-45', 'Ircp / Ilcp', 'Alpha Plus/Minus/Z']
 
 fixed_parameterlist = ['Element','D-line','Constrain Dopp./Density Temps']
 element_list = ['Na', 'K', 'Rb', 'Cs']
 D_line_list = ['D1', 'D2']
-fittable_parameterlist = ['Bfield','Temperature','Cell length','Shift','Additional-Broadening','Theta-0','Sigma-Minus Polarisation','Doppler-Temperature','Rb-85','K40','K41']
-units_parameterlist = [' [G]',' [C]',' [mm]',' [MHz]',' [MHz]',' [deg]',' [%]',' [C]',' [%]',' [%]',' [%]']
+polarisation_options = ['Linear','LCP','RCP','Elliptical']
+polarisation_controls = ['Theta-0','Ex','Ey','Phase [deg]']
+magnet_parameterlist = ['Bfield', 'Btheta', 'Bphi']
+magnetunits_parameterlist = [' [G]',' [deg]',' [deg]']
+main_parameterlist = ['Temperature','Cell length','Shift','Additional-Broadening','Doppler-Temperature','Rb-85','K40','K41']
+mainunits_parameterlist = [' [C]',' [mm]',' [MHz]',' [MHz]',' [C]',' [%]',' [%]',' [%]']
 
 # default values and increments for the floatspin controls on the options panels
 # order is the same as for the fittable_parameterlist list
-defaultvals_parameterlist = [0,20,75,0,0,0,50,20,72.17,0.01,6.73]
-defaultvals_increments = [1, 0.5, 0.5, 1, 1, 1, 1, 0.5, 1, 1, 1]
-detuning_defaults = [-10, 10, 5000]
+defaultvals_magnet_parameterlist = [0, 0, 0]
+defaultvals_magnet_increments = [1, 0.5, 0.5]
+defaultvals_pol_parameterlist = [0, 1, 0, 0]
+defaultvals_pol_increments = [1, 0.01, 0.01, 1]
+defaultvals_main_parameterlist = [20, 75, 0, 0, 20, 72.17, 0.01, 6.73]
+defaultvals_main_increments = [0.5, 0.5, 1, 1, 0.5, 1, 1, 1]
+main_paramlist_mindefaults = [0, 0.001, -4000, 0, -273.15, 0, 0, 0]
+main_paramlist_maxdefaults = [1000, 100, 4000, 1000, 1000, 100, 100, 100]
+magnet_paramlist_mindefaults = [0, 0, 0]
+magnet_paramlist_maxdefaults = [20000, 360, 360]
+detuning_defaults = [-20, 20, 2500]
 detuning_increments = [1,1,1000]
 
 
 # Text strings for tooltips
+magnet_parameter_tooltips = [ \
+'Applied magnetic field in Gauss. Taken as absolute (only pos values allowed)', \
+'Angle magnetic field axis makes with the z-axis (k-vector)', \
+'Angle magnetic field axis makes with the x-axis' \
+]
+
+polarisation_tooltips = ['Linearly polarised light', \
+'Left-hand circularly polarised light', \
+'Right-hand circularly polarised light', \
+'Elliptically polarised light - set ellipticity through Ex, Ey, and relative phase controls']
+
+polarisation_parameter_tooltips = ['The angle the axis of\n\
+the Electric-field oscillation makes (for linearly polarised light).\n\
+0 degrees = polarised along x, 90 degrees = polarised along y.\n\
+For circularly polarised light, this acts as a global \n\
+phase factor and hence has no effect.', \
+'Electric field amplitude in the x-axis', \
+'Electric field amplitude in the y-axis', \
+'Relative phase difference [in degrees] between the x and y components of the electric field']
+
+fit_polarisation_tooltip = 'Fit the angle of polarisation. \nEx, Ey and Phase will all be allowed to vary. \nEx and Ey are constrained such that Ex^2 + Ey^2 = 1, \nand Phase is bounded between 0 and 360 degrees.'
+
+constrain_polarisation_tooltip = 'Constrains the polarisation to be linearly polarised, \ni.e. only fit the angle Theta-0, with Phase = 0'
+
 fixed_parameter_tooltips = [\
 'Select the alkali element to use', \
 'Select the D-line to use.\n\
@@ -47,9 +84,7 @@ and the temperature used to calculate number density. In most cases\n\
 this should be checked, but in cells where the reservoir temperature\n\
 is significantly different to the window temperature, allowing the two\n\
 temperatures to vary independently may be a better idea.' ]
-fit_parameter_tooltips = [ \
-'Applied magnetic field in Gauss. The field is currently only modeled along the axis of propagation.\n\
-Positive numbers mean B and k are parallel, negative means anti-parallel',
+main_parameter_tooltips = [ \
 'Vapour Temperature in degrees Celsius.\nThis is the temperature that sets the number density of the vapour',
 'Cell length in mm.\nThis sets the amount of absorption/dispersion, via essentially the Beer-Lambert law',
 'Shift the global line-centre by an amount in MHz. Negative numbers mean red-shift.',
@@ -57,20 +92,13 @@ Positive numbers mean B and k are parallel, negative means anti-parallel',
 This can be any source of homogeneous broadening, most commonly buffer gases.\n\
 Note that the resonant alkali-alkali collisions (self-broadening or \n\
 pressure-broadening) are already included in the model.',
-'Initial axis of polarisation.\n\
-If the light is completely linearly polarised, this is the axis of\n\
-the Electric-field oscillation. 0 degrees = horizontal, 90 degrees = vertical.\n\
-For circularly polarised light, this acts as a global \n\
-phase factor and hence has no effect.',
-'Percentage of the light that drives sigma-minus transitions. If the light is linearly polarised,\
-in an axial magnetic field (which sets the quantisation axis) half the light drives sigma-plus, half sigma-minus',
 'Doppler Temperature sets the Doppler width',
 'Percentage of Rubidium-85 isotope. Default value is natural abundance. (72% Rb85, 28% Rb87)\n\
-Obviously this has no effect when the element is set to something other than Rb',
+This has no effect when the element is set to something other than Rb',
 'Percentage of Potassium-40 isotope. Default value is natural abundance. (93.28% K39, 0.01%K40, 6.73% K41)\n\
-Obviously this has no effect when the element is set to something other than K',
+This has no effect when the element is set to something other than K',
 'Percentage of Potassium-41 isotope. Default value is natural abundance. (93.28% K39, 0.01%K40, 6.73% K41)\n\
-Obviously this has no effect when the element is set to something other than K'
+This has no effect when the element is set to something other than K'
 ]
 parameter_adjust_tooltip = \
 '\n\n\nShortcuts for faster adjustment of parameters:\n\
@@ -79,25 +107,9 @@ Ctrl + Arrow/MouseWheel = Adjust by 10x increment\n\
 Alt + Arrow/MouseWheel = Adjust by 100x increment\n\
 Escape = Set back to default value'
 fit_algorithm_tooltips = [\
-'Marquardt-Levenberg (ML) is the simplest fitting algorithm, and \n\
-involves a simple downhill method to find a minimum in parameter space.\n\
-Its simplicity makes it relatively fast, and a fit on a data set\n\
-with around 5000 points takes around 15 seconds, depending on computer\n\
-speed and choice of starting parameters. It runs on a single processing core.\n\
-However, for large numbers of free parameters, it is known to find local \n\
-minima and hence often returns non-optimal parameters.\n\
-When the number of free parameters is more than 3, we recommend using either \n\
-Random-Restart or Simulated Annealing instead.',
-'Random-Restart takes a spread of starting parameters, centred\n\
-around the initial parameters. The ML method is called separately\n\
-on each of these starting parameters in order to find a global minimum.\n\
-The speed of this method depends on the number of processing cores\n\
-and number of free parameters in the fit.\n\
-Typically this method takes 1-5 minutes.', \
-'Simulated Annealing is the most complex algorithm included with ElecSus,\n\
-and is therefore the most computationally intensive. However, it is \n\
-most likely to return the global minimum, assuming a sensible starting condition.\n\
-This fit uses all processor cores, but the method is slow, and should\n\
-therefore only be used for the most complex fitting problems, where RR fails\n\
-to find a good solution, or to check the results of an RR fit. \n\
-Typical time to compute is around 10-15 minutes.' ]
+'See the documentation (GUI user manual and journal articles) for detailed\n\
+information on fitting methods. For simple problems, we recommend \n\
+Marquardt-Levenburg, but this is likely to find a local optimum in \n\
+parameter space for complex problems. For complex problems we \n\
+recommend using Differential Evolution, which is faster and more reliable \n\
+than either the RR or SA methods.']*4

@@ -13,18 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""ElecSus: Program to calculate the electric susceptibility
+"""
+This is the highest-level interface to calculate atomic spectra. It provides two methods, to either calculate spectra or fit experimental data to the model.
 
-This module takes user inputs from the run card (default runcard.py),
-and outputs data, performs fitting and shows plots.
+Note: This is incompatible with the old way of running elecsus, using the runcard.py module
 
-Usage:
-
-.......
-.........
-........
-.......	
-	
+Usage, and examples, are detailed in each method separately
 
 """
 
@@ -37,9 +31,6 @@ from numpy import arange, zeros, array, sqrt
 
 # import elecsus modules
 from libs import spectra
-from libs import runcardCheck
-from libs.tools import fileOutput, plotOutput, smoother, read_in_twoColumn
-from libs.numberDensityEqs import *
 
 import libs.MLFittingRoutine as ML
 import libs.SAFittingRoutine as SA
@@ -53,119 +44,166 @@ else:
 #Stop warnings about casting complex numbers
 warnings.simplefilter("ignore")
 
-def calculate(detuning_range, p, OutputType='All'):
-	""" 
-	Detuning range in GHz.
-	p is a list of parameters comprising (in order):
-	[Element, Dline, Bfield, T, lcell, rb85frac, DoppTemp, Theta0, Pol, shift, GammaBuf,
-	ConstrainDoppT, K40frac, K41frac]
-	
-	Returns list of arrays (in order):
-	
-	S0,S1,S2,S3,Ix,Iy,nplus,nminus,phi,alphaplus,alphaminus
-	
-	"""
-	#startTime = timing()
-	spec_data = spectra.spectrum(detuning_range, # convert to MHz
-					Elem=p[0], Dline=p[1], Bfield=p[2], T=p[3], lcell=p[4],
-					rb85frac=p[5], DoppTemp=p[6], theta0=p[7], Pol=p[8], shift=p[9],
-					GammaBuf=p[10], Constrain=p[11], K40frac=p[12], K41frac=p[13],
-					OutputType=OutputType)
-	
-	#print 'Time taken (Calculation only):', timing() - startTime
+verbose = False
 
-	return spec_data
+def calculate(detuning_range, E_in=[1,0,0], p_dict={}, outputs=None):
+	"""
+	Alias for the get_spectra() method in libs.spectra.
 	
-def fit_data(data,parameters,paramBoolList,experimental_datatype='S0',fit_algorithm='ML',**kw):
-	""" 
-	Blurb about this:
+	Inputs:
+		detuning_range [ numpy 1D array ] 
+			The independent variable and defines the detuning points over which to calculate. Values in MHz
+		
+		E_in [ numpy 1/2D array ] 
+			Defines the input electric field vector in the xyz basis. The z-axis is always the direction of propagation (independent of the magnetic field axis), and therefore the electric field should be a plane wave in the x,y plane. The array passed to this method should be in one of two formats:
+				(1) A 1D array of (Ex,Ey,Ez) which is the input electric field for all detuning values;
+				or
+				(2) A 2D array with dimensions (3,len(detuning_range)) - i.e. each detuning has a different electric field associated with it - which will happen on propagation through a birefringent/dichroic medium
+		
+		p_dict [ dictionary ]
+			Dictionary containing all parameters (the order of parameters is therefore not important)
+				Dictionary keys:
 	
-	data is a 2-element list containing x and y data 1-d arrays.
-	parameters (and parameter order) is same as for the calculate() method.
-	paramBoolList is ...
-	experimental_datatype is ...
-	fit_algorith is ...
-	keywords are
+				Key				DataType	Unit		Description
+				---				---------	----		-----------
+				Elem	   			str			--			The chosen alkali element.
+				Dline	  			str			--			Specifies which D-line transition to calculate for (D1 or D2)
+				
+				# Magnetic field parameters
+				Bfield	 			float			Gauss	Magnitude of the applied magnetic field
+				Btheta			float			degrees	Angle B-field makes with the y-z plane
+				Bphi				float			degrees	Angle B-field makes with the x-z plane
+
+				# Experimental parameters
+				T		 			float			Celsius	Temperature used to calculate atomic number density
+				GammaBuf   	float			MHz		Extra lorentzian broadening (usually from buffer gas 
+																but can be any extra homogeneous broadening)
+				shift	  			float			MHz		A global frequency shift of the atomic resonance frequencies
+				DoppTemp   	float			Celsius	Temperature linked to the Doppler width (used for
+																independent Doppler width and number density)
+				Constrain  		bool			--			If True, overides the DoppTemp value and sets it to T
+				lcell	  			float			m			length of the vapour cell
+
+				# Elemental abundancies, where applicable
+				rb85frac   		float			%			percentage of rubidium-85 atoms
+				K40frac			float			%			percentage of potassium-40 atoms
+				K41frac			float			%			percentage of potassium-41 atoms
+				
+				
+				NOTE: If keys are missing from p_dict, default values contained in p_dict_defaults will be loaded.
+		
+		outputs [ list of strings ]
+			Keyword argument that defines the quantities that are returned. 
+			If not specified, defaults to None, in which case a default set of outputs is returned, which are:
+				S0, S1, S2, S3, Ix, Iy, I_P45, I_M45, alphaPlus, alphaMinus, alphaZ
+	
+	Returns:
+		A list of output arrays as defined by the 'outputs' keyword argument.
+		
+		
+	Example usage:
+		To calculate the room temperature absorption of a 75 mm long Cs reference cell in an applied magnetic field of 100 G aligned along the direction of propagation (Faraday geometry), between -10 and +10 GHz, with an input electric field aligned along the x-axis:
+		
+		> detuning_range = np.linspace(-10,10,1000)*1e3 # GHz to MHz conversion
+		> E_in = np.array([1,0,0])
+		> p_dict = {'Elem':'Cs', 'Dline':'D2', 'Bfield':100, 'T':21, 'lcell':75e-3}
+		> [Transmission] = calculate(detuning_range,E_in,p_dict,outputs=['S0'])
+			
+		More examples available in the /tests/ directory
 	"""
 	
+	return spectra.get_spectra(detuning_range, E_in, p_dict, outputs)
 	
-	## alter the parameter order. again.
-	## Really need to rewrite the fitting modules for a more sensible parameter order
-	## but it's a pain and doesn't add any functionality, so
-	## it is therefore on the 'to do' list!
 	
-	## Order as given in the 'parameters' argument
-	## Element, Dline, B, T, L, Rb85, DoppT, Theta0, Pol, shift,
-	## GammaBuf, Constrain, K40, K41
 	
-	## Order required by Fitting routines:
-	## Element, OutputType, B, T, L, Rb85%, DoppT, Theta0, Pol, Shift, 
-	## GammaBuf, Constrain, Dline, Precision, K40%, K41%
+	
+def fit_data(data,p_dict,p_dict_bools,E_in=None,p_dict_bounds=None,data_type='S0',fit_algorithm='ML',**kw):
+	""" 
+	Method to compare and fit experimental data to ElecSus.
+	
+	*** Example use cases can be found in /tests/fitting_tests.py
+	
+	Arguments:
+		data:					an Nx2 iterable for the x and y data to be fitted
 
-	parameters_new = [None]*16
-	parameters_new[0] = parameters[0]
-	parameters_new[1] = experimental_datatype
-	parameters_new[2:12] = parameters[2:12]
-	parameters_new[12] = parameters[1]
-	parameters_new[13] = 10
-	parameters_new[14:] = parameters[12:]
+		p_dict:					dictionary containing all the calculation (initial) parameters
+		p_dict_bools:		dictionary with the same keys as p_dict, with Boolean values representing each parameter that is to be varied in the fitting
+			
+	Options:
+		E_in:					the initial electric field input. See docstring for the spectra.py module for details.
+		p_dict_bounds:	dictionary with the same keys as p_dict, with values that are pairs of min/max values that each parameter can take.
+										Optional, except for when using 'differential_evolution' fitting method, when bounds must be provided on fit parameters
+		data_type:			Data type to fit experimental data to. Can be one of:
+										'S0', 'S1', 'S2', 'S3', 'Ix', 'Iy', ...
+		verbose:				Boolean - more print statements provided as the program progresses
 	
-	#print parameters_new
+		fit_algorithm:		One of the following:
+										'ML',  standard Marquardt-Levenberg fitting
+										'RR', Random-restart
+										'SA', Simulated Annealing
+										'DE', Differential Evolution
+										
+									In principle the other methods supported by lmfit are possible, but these have not so far been implemented here
+	"""
 	
+	#The more parameters to fit, the more evaluations we need to do.
+	nparameters = 0
+	for key in p_dict_bools:
+		if p_dict_bools[key]: nparameters += 1
+
+	if verbose: print 'Starting parameter dictionary:\n', p_dict
 	
-	startTime = timing()
-	xdata, ydata = data
-	#print xdata, ydata
-	#print type(xdata), type(ydata)
-	
+	if E_in is None:
+		try:
+			E_in = [p_dict['E_x'],[p_dict['E_y'],p_dict['E_phase']]]
+		except:
+			# E_in not in p_dict or specified otherwise...
+			raise
 	
 	# Call different fitting routines        
-	if fit_algorithm == 'Marquardt-Levenberg':
+	if fit_algorithm in ('ML', 'Marquardt-Levenberg', 'LM', 'leastsq'):
 		print '\nPerfoming Marquardt-Levenberg fitting routine.'
-		optParams, Spec = ML.MLfit(xdata,ydata,parameters_new,
-												 paramBoolList,**kw)
-	elif fit_algorithm == 'Simulated Annealing':
+		optParams, result = ML.ML_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=p_dict_bounds,data_type=data_type)
+		print 'ML Fit completed'
+	elif fit_algorithm == 'SA':
 		print '\nPerforming fitting by simulated annealing.'
-		optParams, Spec = SA.SAFit(xdata,ydata,parameters_new,
-												 paramBoolList,**kw)
+		nevaluations = 2**(8+2*nparameters)
+		optParams, result = SA.SA_fit(data,E_in,p_dict,p_dict_bools,data_type=data_type,no_evals=nevaluations)
+	elif fit_algorithm in ('DE', 'differential_evolution'):
+		print '\nPerfoming Differential Evolution fitting routine.'
+		# Run with differential evolution
+		optParams_DE, result = ML.ML_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=p_dict_bounds,data_type=data_type,method='differential_evolution')
+		# Then to get errors on parameters, run ML fit with optimised parameters
+		print 'DE fitting finished - rounding off with ML fit with optimised parameters...'
+		try:
+			for key in ['Elem', 'Dline', 'Constrain']:
+				optParams_DE[key] = p_dict[key]
+		except KeyError:
+			optParams_DE[key] = spectra.p_dict_defaults[key]
+		## then do ML fit on the end to get error bars ...
+		optParams, result = ML.ML_fit(data,E_in,optParams_DE,p_dict_bools,p_dict_bounds=p_dict_bounds,data_type=data_type)
 	else:
 		print '\nPerforming fitting by Random-Restart hill climbing method.'
 		#The more parameters to fit, the more evaluations we need to do.
-		factor = sum(paramBoolList) 
-		evaluationNumber = factor**2 + 5 #integer
-		optParams, Spec = RR.RRFit(xdata,ydata,parameters_new,paramBoolList,
-								   evaluationNumber,**kw)
+		nparameters = 0
+		for key in p_dict_bools:
+			if p_dict_bools[key]: nparameters += 1
+		
+		nevaluations = no_evals = 2**(4+nparameters) #integer
+		optParams, result = RR.RR_fit(data,E_in,p_dict,p_dict_bools,
+								   no_evals=nevaluations,data_type=data_type)
 	
+	# Add fixed parameters back to the optParams dictionary if they exist
+	try:
+		for key in ['Elem', 'Dline', 'Constrain']:
+			optParams[key] = p_dict[key]
+	except KeyError:
+		pass
+		
+	if verbose: print result.fit_report()
 	
+	Spec = result.best_fit
+	ydata = data[1]
 	RMS = sqrt(((ydata - Spec)**2).sum()/float(len(ydata)))
 	
-	# Write the fit parameters to a file
-	parameterLabels = ['Magnetic field in Gauss =',
-					   'Reservoir temperature in Celsius =',
-					   'Cell Length in mm =',
-					   'Rb85 percentage =',
-					   'Doppler temperature in Celsius =',
-					   'Theta0 in degrees =',
-					   'Initial sigma minus polarisation percentage = ',
-					   'Shift in MHz =', 
-					   'Extra Lorentzian width broadening (MHz) =',
-					   'Potassium-40 percentage =',
-					   'Potassium-41 percentage =']
-	#f_Parameters = open(os.path.join(outputDirectory,DAT+'_Parameters.txt')
-	#					,'w')
-	#optParams[2] = optParams[2]
-	#optParams[3] = optParams[3]
-	#optParams[6] = optParams[6]
-	#optParams[5] = optParams[5]
-
-	## re-order the optimal params back to the way they were given in the 'parameters' argument....
-	## this is getting pretty tedious...
-	optParams_out = [0]*len(parameters)
-	optParams_out[0] = optParams[0]
-	optParams_out[1] = optParams[12]
-	optParams_out[2:12] = optParams[2:12]
-	optParams_out[12:] = optParams[14:]
-	
-	print 'Optimum parameters found !'
-	
-	return optParams_out, RMS
+	return optParams, RMS, result

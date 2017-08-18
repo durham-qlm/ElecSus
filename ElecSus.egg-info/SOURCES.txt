@@ -9,19 +9,19 @@ ElecSus.egg-info/top_level.txt
 elecsus/__init__.py
 elecsus/elecsus_gui.py
 elecsus/elecsus_methods.py
-elecsus/elecsus_runcard.py
-elecsus/docs/ElecSus_GUI_UserGuide.pdf
-elecsus/docs/Manual.pdf
+elecsus/docs/ElecSus GUI User Guide.pdf
 elecsus/images/elecsus-logo.png
-elecsus/images/elecsus_group.ico
 elecsus/images/elecsus_t_group.ico
 elecsus/images/jqc-logo.png
 elecsus/libs/AtomConstants.py
+elecsus/libs/BasisChanger.py
 elecsus/libs/EigenSystem.py
 elecsus/libs/FundamentalConstants.py
+elecsus/libs/JonesMatrices.py
 elecsus/libs/MLFittingRoutine.py
 elecsus/libs/NOTICE.py
 elecsus/libs/RRFittingRoutine.py
+elecsus/libs/RotationMatrices.py
 elecsus/libs/SAFittingRoutine.py
 elecsus/libs/__init__.py
 elecsus/libs/ang_mom.py
@@ -30,15 +30,12 @@ elecsus/libs/data_proc.py
 elecsus/libs/durhamcolours.py
 elecsus/libs/fs_hfs.py
 elecsus/libs/numberDensityEqs.py
+elecsus/libs/polarisation_animation.py
+elecsus/libs/polarisation_animation_mpl.py
 elecsus/libs/preamble.py
-elecsus/libs/runcardCheck.py
+elecsus/libs/solve_dielectric - Copy.py
+elecsus/libs/solve_dielectric.py
 elecsus/libs/spectra.py
+elecsus/libs/spectra_energies.py
+elecsus/libs/spectra_idealatom.py
 elecsus/libs/sz_lsi.py
-elecsus/libs/tools.py
-elecsus/runcard/runcard.py
-elecsus/runcard/runcard_CsD2.py
-elecsus/runcard/runcard_D1sample.py
-elecsus/runcard/runcard_D2sample.py
-elecsus/sample_data/SampleDataRbD1.csv
-elecsus/sample_data/SampleData_Ix_RbD2.csv
-elecsus/sample_data/SampleData_S1_RbD2.csv

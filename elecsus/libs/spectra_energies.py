@@ -1,4 +1,4 @@
-# Copyright 2014-2017 M. A. Zentile, J. Keaveney, L. Weller, D. Whiting,
+# Copyright 2014-2016 M. A. Zentile, J. Keaveney, L. Weller, D. Whiting,
 # C. S. Adams and I. G. Hughes.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,7 @@ Module containing functions to calculate the spectra
 Constructs the electric susceptibility and then returns
 the spectrum requested
 
-Last Updated 2017-06-29 JK
+Last Updated 2016-10-12 JK
 """
 
 from numpy import zeros,sqrt,pi,dot,exp,sin,cos,array,amax,arange,concatenate,argmin
@@ -28,6 +28,7 @@ from scipy.special import wofz
 from scipy.interpolate import interp1d
 from FundamentalConstants import *
 from numberDensityEqs import *
+#from tools import derivative
 
 import EigenSystem as ES
 import AtomConstants as AC
@@ -62,6 +63,10 @@ def FreqStren(groundLevels,excitedLevels,groundDim,
 	transitionStrength = zeros(groundDim*2*groundDim)
 	transNo = 0
 	
+	groundLevelsT = []
+	excitedLevelsT = []
+	transitionFrequencyT = []
+	
 	## Boltzmann factor: -- only really needed when energy splitting of ground state is large
 	if BoltzmannFactor:
 		groundEnergies = array(groundLevels)[:,0].real
@@ -93,11 +98,14 @@ def FreqStren(groundLevels,excitedLevels,groundDim,
 		for ee in interatorList:
 			cleb = dot(groundLevels[gg][1:],excitedLevels[ee][bottom:top]).real
 			cleb2 = cleb*cleb
-			if cleb2 > 0.0005: #If negligable don't calculate.
+			if cleb2 > 0.0005: #If negligible don't calculate.
 				transitionFrequency[transNo] = int((-groundLevels[gg][0].real
 											  +excitedLevels[ee][0].real))
 				# We choose to perform the ground manifold reduction (see
 				# equation (4) in manual) here for convenience.
+				transitionFrequencyT.append(transitionFrequency[transNo])
+				groundLevelsT.append(groundLevels[gg][0].real)
+				excitedLevelsT.append(excitedLevels[ee][0].real)
 				
 				## Boltzmann factor:
 				if BoltzmannFactor: 
@@ -108,7 +116,7 @@ def FreqStren(groundLevels,excitedLevels,groundDim,
 				transNo += 1
 
 	#print 'No transitions (ElecSus): ',transNo
-	return transitionFrequency, transitionStrength, transNo
+	return np.array(transitionFrequencyT), np.array(transitionStrength), transNo, np.array(groundLevelsT), np.array(excitedLevelsT)
 
 def add_voigt(d,DoppTemp,atomMass,wavenumber,gamma,voigtwidth,
 		ltransno,lenergy,lstrength,
@@ -153,7 +161,7 @@ def add_voigt(d,DoppTemp,atomMass,wavenumber,gamma,voigtwidth,
 		zdisp += zstrength[line]*f_disp(2.0*pi*(d-xc)*1.0e6)
 	return lab, ldisp, rab, rdisp, zab, zdisp
 
-def calc_chi(X, p_dict,verbose=False):			   
+def calc_chi_energies(X, p_dict,verbose=False):			   
 	"""
 	Computes the complex susceptibility for sigma plus/minus and pi transitions as a 1D array
 
@@ -260,6 +268,7 @@ def calc_chi(X, p_dict,verbose=False):
 	# Rubidium energy levels
 	if Elem=='Rb':
 		rb87frac=1.0-rb85frac  # Rubidium-87 fraction
+		'''
 		if rb85frac!=0.0: #Save time if no rubidium-85 required
 			Rb85atom = AC.Rb85
 			#Hamiltonian(isotope,transition,gL,Bfield)
@@ -279,34 +288,34 @@ def calc_chi(X, p_dict,verbose=False):
 													Rb85_ES.ds,Rb85_ES.dp,
 													Dline,'Right',BoltzmannFactor,T+273.16)
 			
-			# Rb-85 allowed transitions for light driving pi
+			# Rb-85 allowed transitions for light driving sigma plus
 			zenergy85, zstrength85, ztransno85 = FreqStren(
 													Rb85_ES.groundManifold,
 													Rb85_ES.excitedManifold,
 													Rb85_ES.ds,Rb85_ES.dp,
 													Dline,'Z',BoltzmannFactor,T+273.16)
 			
-
+		'''
 		if rb87frac!=0.0:
 			Rb87atom = AC.Rb87
 			#Hamiltonian(isotope,transition,gL,Bfield)
 			Rb87_ES = ES.Hamiltonian('Rb87',Dline,1.0,Bfield)
 			# Rb-87 allowed transitions for light driving sigma minus
-			lenergy87, lstrength87, ltransno87 = FreqStren(
+			lenergy87, lstrength87, ltransno87, lgl87, lel87 = FreqStren(
 													Rb87_ES.groundManifold,
 													Rb87_ES.excitedManifold,
 													Rb87_ES.ds,Rb87_ES.dp,
 													Dline,'Left',BoltzmannFactor,T+273.16)
 
 			# Rb-87 allowed transitions for light driving sigma plus
-			renergy87, rstrength87, rtransno87 = FreqStren(
+			renergy87, rstrength87, rtransno87, rgl87, rel87 = FreqStren(
 													Rb87_ES.groundManifold,
 													Rb87_ES.excitedManifold,
 													Rb87_ES.ds,Rb87_ES.dp,
 													Dline,'Right',BoltzmannFactor,T+273.16)
 
-			# Rb-87 allowed transitions for light driving sigma plus
-			zenergy87, zstrength87, ztransno87 = FreqStren(
+			# Rb-87 allowed transitions for light driving pi
+			zenergy87, zstrength87, ztransno87, zgl87, zel87 = FreqStren(
 													Rb87_ES.groundManifold,
 													Rb87_ES.excitedManifold,
 													Rb87_ES.ds,Rb87_ES.dp,
@@ -327,7 +336,12 @@ def calc_chi(X, p_dict,verbose=False):
 			AllEnergyLevels = concatenate((lenergy85,renergy85,zenergy85))
 		elif (rb85frac==0.0) and (rb87frac!=0.0):
 			AllEnergyLevels = concatenate((lenergy87,renergy87,zenergy87))
+			
+		return lenergy87, lstrength87, ltransno87, lgl87, lel87, \
+					renergy87, rstrength87, rtransno87, rgl87, rel87, \
+					zenergy87, zstrength87, ztransno87, zgl87, zel87
 
+	'''
 	# Caesium energy levels
 	elif Elem=='Cs':
 		CsAtom = AC.Cs
@@ -373,7 +387,7 @@ def calc_chi(X, p_dict,verbose=False):
 			transitionConst = AC.NaD1Transition
 		elif Dline=='D2':
 			transitionConst = AC.NaD2Transition
-		AllEnergyLevels = concatenate((lenergy,renergy,zenergy))
+		AllEnergyLevels = concatenate((lenergy,renergy))
 
 	#Potassium energy levels <<<<< NEED TO ADD Z-COMPONENT >>>>>
 	elif Elem=='K':
@@ -437,15 +451,15 @@ def calc_chi(X, p_dict,verbose=False):
 		elif Dline=='D2':
 			transitionConst = AC.KD2Transition
 		if K39frac!=0.0:
-			AllEnergyLevels = concatenate((lenergy39,renergy39,zenergy39))
+			AllEnergyLevels = concatenate((lenergy39,renergy39))
 		if K40frac!=0.0 and K39frac!=0.0:
-			AllEnergyLevels = concatenate((AllEnergyLevels,lenergy40,renergy40,zenergy40))
+			AllEnergyLevels = concatenate((AllEnergyLevels,lenergy40,renergy40))
 		elif K40frac!=0.0 and K39frac==0.0:
-			AllEnergyLevels = concatenate((lenergy40,renergy40,zenergy40))
+			AllEnergyLevels = concatenate((lenergy40,renergy40))
 		if K41frac!=0.0 and (K39frac!=0.0 or K40frac!=0.0):
-			AllEnergyLevels = concatenate((AllEnergyLevels,lenergy41,renergy41,zenergy41))
+			AllEnergyLevels = concatenate((AllEnergyLevels,lenergy41,renergy41))
 		elif K41frac!=0.0 and (K39frac==0.0 and K40frac==0.0):
-			AllEnergyLevels = concatenate((lenergy41,renergy41,zenergy41))
+			AllEnergyLevels = concatenate((lenergy41,renergy41))
 
 #Calculate Voigt
 	if Constrain:
@@ -582,6 +596,7 @@ def calc_chi(X, p_dict,verbose=False):
 	totalChiZ = ChiRealZ + 1.j*ChiImZ
 	
 	return totalChiPlus, totalChiMinus, totalChiZ
+	'''
 
 def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 	""" 
@@ -658,13 +673,13 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 		Dline = p_dict['Dline']
 	else:
 		Dline = p_dict_defaults['Dline']
+
+	# get wavenumber
+	exec('transition = AC.'+Elem+Dline+'Transition')
+	wavenumber = transition.wavevectorMagnitude
 	
 	## get magnetic field spherical coordinates
 	# defaults to 0,0 i.e. B aligned with kvector of light (Faraday)
-	if 'Bfield' in p_dict.keys():
-		Bfield = p_dict['Bfield']
-	else:
-		Bfield = p_dict_defaults['Bfield']
 	if 'Btheta' in p_dict.keys():
 		Btheta = p_dict['Btheta']
 	else:
@@ -674,21 +689,6 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 	else:
 		Bphi = p_dict_defaults['Bphi']
 		
-	# direction of wavevector (for double-pass geometry simulations)
-	if 'wavevector_dirn' in p_dict.keys():
-		wavevector_dirn = p_dict['wavevector_dirn']
-	else:
-		wavevector_dirn = 1
-	
-	if wavevector_dirn == -1:
-		# light propagating backwards, but always calculate assuming light travelling in the +z direction,
-		# therefore flip B-field 180 degrees around (can use either theta or phi for this)
-		Btheta += np.pi
-	
-	# get wavenumber
-	exec('transition = AC.'+Elem+Dline+'Transition')
-	wavenumber = transition.wavevectorMagnitude * wavevector_dirn
-
 	# get susceptibility (already calculated, input to this method)
 	ChiPlus, ChiMinus, ChiZ = Chi
 
@@ -697,11 +697,8 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 	E_xz = RM.rotate_around_z(E_in.T,Bphi)
 		
 	# Find eigen-vectors for propagation and create rotation matrix
-	RM_ary, n1, n2 = SD.solve_diel(ChiPlus,ChiMinus,ChiZ,Btheta,Bfield)
+	RM_ary, n1, n2 = SD.solve_diel(ChiPlus,ChiMinus,ChiZ,Btheta)
 
-	# take conmplex conjugate of rotation matrix
-	RM_ary = RM_ary.conjugate()
-	
 	# propagation matrix
 	PropMat = np.array(
 				[	[exp(1.j*n1*wavenumber*lcell),np.zeros(len(n1)),np.zeros(len(n1))],
@@ -735,7 +732,7 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 	## return electric field vector - can then use Jones matrices to do everything else
 	return E_out.T[0], np.matrix(RM_ary.T[i])
 
-def get_spectra(X, E_in, p_dict, outputs=None):
+def get_spectra2(X, E_in, p_dict, outputs=None):
 	""" 
 	Calls get_Efield() to get Electric field, then use Jones matrices 
 	to calculate experimentally useful quantities.
@@ -798,9 +795,6 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 		p_dict = {'Elem':'Cs', 'Dline':'D2', 'Bfield':100, 'T':21, 'lcell':75e-3}
 		
 		[Transmission] = calculate(detuning_range,E_in,p_dict,outputs=['S0'])
-		
-		
-		More examples are available in the /tests/ folder
 	"""
 	
 	# get some parameters from p dictionary
@@ -960,11 +954,274 @@ def output_list():
 	phi					Total rotation of linear polarisation \n\
 	Ix						Intensity of light transmitted through a linear polariser aligned with the x-axis \n\
 	Iy						Intensity of light transmitted through a linear polariser aligned with the y-axis \n\
-	Ir						Intensity of right-circularly polarised light\n\
-	Il						Intensity of left-circularly polarised light\n\
 	alphaPlus			Absorption coefficient due to sigma-plus transitions \n\
 	alphaMinus			Absorption coefficient due to sigma-minus transitions \n\
 	GIMinus				Group index of left-circularly polarised light \n\
 	GIPlus				Group index of right-circularly polarised light \n\
 	"	
 	print tstr
+
+def test1():
+### 1. Fig 3 of Generalised treatment ... Rotondaro JOSAB 2015 paper
+### Normal Faraday spectrum
+	import time
+	d = np.arange(-10000,10000,10)
+	#Voigt
+	p_dict = {'Bfield':300,'rb85frac':1,'Btheta':0,'lcell':75e-3,'T':58,'Dline':'D2','Elem':'Cs'}
+	
+	#timing:
+	st = time.clock()
+	TF = get_spectra2(d,[1,0,0],p_dict,outputs=['Iy'])
+	et = time.clock() - st
+	print 'E-field - Elapsed time (s):', et
+
+	#check vs old elecsus
+	from elecsus.libs import spectra as old_spec
+	
+	st = time.clock()
+	TF_old = old_spec.get_spectra(d,p_dict,outputs=['Iy'])
+	et = time.clock() - st
+	print 'Old elecsus - Elapsed time (s):', et
+	
+	index = 0 # Iy
+	
+	fig = plt.figure("Faraday comparison")
+	ax1 = fig.add_subplot(111)
+	ax1.plot(d,TF[index],'r',lw=2,label='Faraday')
+	ax1.plot(d,TF_old[0],'k--',lw=2,label='Vanilla ElecSus')
+	
+	ax1.legend(loc=0)
+	
+	ax1.set_xlabel('Detuning (MHz)')
+	ax1.set_ylabel('Transmission')
+	
+	plt.show()
+
+def test2():
+### 2. Fig 4/5 of General.... paper
+### Voigt Filter
+	d = np.linspace(-65000,65000,1500)
+	#Voigt
+
+
+## 700 G, 84 C, Cs, 75mm
+
+	#p_dict = {'Bfield':700,'rb85frac':1,'Btheta':90*np.pi/180,'lcell':75e-3,'T':84,'Dline':'D2','Elem':'Cs'}
+	p_dict = {'Bfield':10000,'rb85frac':1,'Btheta':np.pi/2,'Bphi':90*np.pi/180,'lcell':5e-3,'T':124,'Dline':'D2','Elem':'Rb'}
+	pol = 1./sqrt(2)*np.array([1.0,1.0,0.0])
+	TVx = get_spectra2(d,pol,p_dict,outputs=['I_M45','I_P45','Ix','Iy','S0','Iz'])
+	
+	fig2 = plt.figure()
+	ax1a = fig2.add_subplot(411)
+	ax2a = fig2.add_subplot(412,sharex=ax1a)
+	ax3a = fig2.add_subplot(413,sharex=ax1a)
+	ax4a = fig2.add_subplot(414,sharex=ax1a)
+	
+	ax1a.plot(d,TVx[0],'r',lw=2,label=r'$I_{-45}$')
+	ax2a.plot(d,TVx[1],'b',lw=2,label=r'$I_{+45}$')
+	ax3a.plot(d,TVx[2],'r',lw=2,label=r'$I_x$')
+	ax4a.plot(d,TVx[3],'b',lw=2,label=r'$I_y$')
+	ax4a.plot(d,TVx[0]+TVx[1],'r:',lw=3.5,label=r'$I_{+45}+I_{-45}$')
+	ax4a.plot(d,TVx[2]+TVx[3],'k:',lw=2.5,label=r'$I_x + I_y$')
+	ax4a.plot(d,TVx[4],'g--',lw=1.5,label='$S_0$')
+#	ax4a.plot(d,TVx[5],'c--',lw=2.5,label='$I_z$')
+	
+	
+	ax4a.set_xlabel('Detuning (MHz)')
+	ax1a.set_ylabel('I -45')
+	ax2a.set_ylabel('I +45')
+	ax3a.set_ylabel('Ix')
+	ax4a.set_ylabel('Iy')
+	
+	ax4a.set_xlim(d[0],d[-1]+3000)
+	ax4a.legend(loc=0)
+	
+	plt.show()
+
+def test3():
+### 3. Fig 7 of General.... paper
+### Arbitrary Filter - non-optimised
+	d = np.linspace(-15000,15000,300)
+	#Voigt
+	#p_dict = {'Bfield':700,'rb85frac':1,'Btheta':90*np.pi/180,'lcell':75e-3,'T':84,'Dline':'D2','Elem':'Cs'}
+	p_dict = {'Bfield':500,'rb85frac':1,'Btheta':87*np.pi/180,'Bphi':00*np.pi/180,'lcell':75e-3,'T':100,'Dline':'D2','Elem':'Cs'}
+	pol = 1./sqrt(2)*np.array([1.0,0.0,0.0])
+	TVx = get_spectra2(d,pol,p_dict,outputs=['I_M45','I_P45','Ix','Iy','S0','Iz'])
+	
+	fig2 = plt.figure()
+	ax1a = fig2.add_subplot(411)
+	ax2a = fig2.add_subplot(412,sharex=ax1a)
+	ax3a = fig2.add_subplot(413,sharex=ax1a)
+	ax4a = fig2.add_subplot(414,sharex=ax1a)
+	
+	ax1a.plot(d,TVx[0],'r',lw=2,label=r'$I_{-45}$')
+	ax2a.plot(d,TVx[1],'b',lw=2,label=r'$I_{+45}$')
+	ax3a.plot(d,TVx[2],'r',lw=2,label=r'$I_x$')
+	ax4a.plot(d,TVx[3],'b',lw=2,label=r'$I_y$')
+	ax4a.plot(d,TVx[0]+TVx[1],'r:',lw=3.5,label=r'$I_{+45}+I_{-45}$')
+	ax4a.plot(d,TVx[2]+TVx[3],'k:',lw=2.5,label=r'$I_x + I_y$')
+	ax4a.plot(d,TVx[4],'g--',lw=1.5,label='$S_0$')
+#	ax4a.plot(d,TVx[5],'c--',lw=2.5,label='$I_z$')
+	
+	
+	ax4a.set_xlabel('Detuning (MHz)')
+	ax1a.set_ylabel('I -45')
+	ax2a.set_ylabel('I +45')
+	ax3a.set_ylabel('Ix')
+	ax4a.set_ylabel('Iy')
+	
+	ax4a.set_xlim(d[0],d[-1]+3000)
+	ax4a.legend(loc=0)
+	
+	plt.show()
+
+def test4():
+### 4. Fig 8 of General.... paper
+### Arbitrary Filter - optimised
+	d = np.linspace(-15000,15000,300)
+	#Voigt
+	#p_dict = {'Bfield':700,'rb85frac':1,'Btheta':90*np.pi/180,'lcell':75e-3,'T':84,'Dline':'D2','Elem':'Cs'}
+	p_dict = {'Bfield':1000,'rb85frac':1,'Btheta':88*np.pi/180,'Bphi':00*np.pi/180,'lcell':75e-3,'T':93,'Dline':'D2','Elem':'Cs'}
+	pol = 1./sqrt(2)*np.array([1.0,0.0,0.0])
+	TVx = get_spectra2(d,pol,p_dict,outputs=['I_M45','I_P45','Ix','Iy','S0','Iz'])
+	
+	fig2 = plt.figure()
+	ax1a = fig2.add_subplot(411)
+	ax2a = fig2.add_subplot(412,sharex=ax1a)
+	ax3a = fig2.add_subplot(413,sharex=ax1a)
+	ax4a = fig2.add_subplot(414,sharex=ax1a)
+	
+	ax1a.plot(d,TVx[0],'r',lw=2,label=r'$I_{-45}$')
+	ax2a.plot(d,TVx[1],'b',lw=2,label=r'$I_{+45}$')
+	ax3a.plot(d,TVx[2],'r',lw=2,label=r'$I_x$')
+	ax4a.plot(d,TVx[3],'b',lw=2,label=r'$I_y$')
+	ax4a.plot(d,TVx[0]+TVx[1],'r:',lw=3.5,label=r'$I_{+45}+I_{-45}$')
+	ax4a.plot(d,TVx[2]+TVx[3],'k:',lw=2.5,label=r'$I_x + I_y$')
+	ax4a.plot(d,TVx[4],'g--',lw=1.5,label='$S_0$')
+#	ax4a.plot(d,TVx[5],'c--',lw=2.5,label='$I_z$')
+	
+	
+	ax4a.set_xlabel('Detuning (MHz)')
+	ax1a.set_ylabel('I -45')
+	ax2a.set_ylabel('I +45')
+	ax3a.set_ylabel('Ix')
+	ax4a.set_ylabel('Iy')
+	
+	ax4a.set_xlim(d[0],d[-1]+3000)
+	ax4a.legend(loc=0)
+	
+	plt.show()
+
+def test5():
+### 5. Durham Lab tests
+	d = np.linspace(-15000,15000,1500)
+	
+	BFIELD = 500
+	TEMP = 60
+	LCELL = 2e-3
+	
+	ELEM = 'Rb'
+	DLINE = 'D2'
+	RB85FRAC = 99.0 # Nat abundance?
+	
+	# Voigt, H pol
+	pol = 1./sqrt(2)*np.array([1.0,0.0,0.0])
+	p_dict = {'Bfield':BFIELD,'rb85frac':RB85FRAC,'Btheta':90*np.pi/180,'Bphi':00*np.pi/180,'lcell':LCELL,'T':TEMP,'Dline':DLINE,'Elem':ELEM}
+	[T_H] = get_spectra2(d,pol,p_dict,outputs=['S0'])
+		
+	# Voigt, V-pol
+	pol = 1./sqrt(2)*np.array([0.0,1.0,0.0])
+	p_dict = {'Bfield':BFIELD,'rb85frac':RB85FRAC,'Btheta':90*np.pi/180,'Bphi':00*np.pi/180,'lcell':LCELL,'T':TEMP,'Dline':DLINE,'Elem':ELEM}
+	[T_V] = get_spectra2(d,pol,p_dict,outputs=['S0'])
+
+	# Voigt, zero-field
+	p_dict = {'Bfield':0,'rb85frac':RB85FRAC,'Btheta':90.*np.pi/180,'Bphi':00*np.pi/180,'lcell':LCELL,'T':TEMP,'Dline':DLINE,'Elem':ELEM}
+	[T_0] = get_spectra2(d,pol,p_dict,outputs=['S0'])
+	
+	## Bastard offspring of Voigt and Faraday
+	#p_dict = {'Bfield':BFIELD,'rb85frac':RB85FRAC,'Btheta':45*np.pi/180,'Bphi':00*np.pi/180,'lcell':LCELL,'T':TEMP,'Dline':DLINE,'Elem':ELEM}
+	#[T_45Deg] = get_spectra2(d,pol,p_dict,outputs=['S0'])
+	
+	
+	fig2 = plt.figure()
+	ax1a = fig2.add_subplot(311)
+	ax2a = fig2.add_subplot(312,sharex=ax1a)
+	ax3a = fig2.add_subplot(313,sharex=ax1a)
+	
+	ax1a.plot(d,T_V,'r:',lw=1,label=r'$\theta=0$')
+	ax1a.plot(d,T_H,'b:',lw=1,label=r'$\theta=0$')
+	ax1a.plot(d,T_0,'k',lw=2,label=r'$\theta=0$')
+	
+	ax2a.plot(d,T_V,'k:',lw=1,label=r'$\theta=0$')
+	ax2a.plot(d,T_0,'r:',lw=1,label=r'$\theta=0$')
+	ax2a.plot(d,T_H,'b',lw=2,label=r'$\theta=0$')
+
+	ax3a.plot(d,T_0,'k:',lw=1,label=r'$\theta=0$')
+	ax3a.plot(d,T_H,'b:',lw=1,label=r'$\theta=0$')
+	ax3a.plot(d,T_V,'r',lw=2,label=r'$\theta=0$')
+
+	#	ax4a.plot(d,TVx[5],'c--',lw=2.5,label='$I_z$')
+	
+	
+	ax3a.set_xlabel('Detuning (MHz)')
+	ax1a.set_ylabel('Zero-field')
+	ax2a.set_ylabel('H-polarised')
+	ax3a.set_ylabel('V-polarised')
+	
+	ax3a.set_xlim(d[0],d[-1])
+	#ax4a.legend(loc=0)
+	
+	plt.show()
+
+def test6():
+### 5. Boltzmann Factor tests
+	d = np.linspace(-15,15,10000)*1e3
+	
+	BFIELD = 15500
+	TEMP = 130
+	LCELL = 1e-3
+	
+	ELEM = 'Rb'
+	DLINE = 'D2'
+	RB85FRAC = 1.0 # Nat abundance?
+	
+	# Voigt, 45 degree linear pol
+	
+	#Boltzmann ON
+	pol = 1./sqrt(2)*np.array([1.0,1.0,0.0])
+	p_dict = {'Bfield':BFIELD,'rb85frac':RB85FRAC,'Btheta':90*np.pi/180,'Bphi':00*np.pi/180,'lcell':LCELL,'T':TEMP,'Dline':DLINE,'Elem':ELEM,'BoltzmannFactor':True}
+	[S0_on,S2_on,S3_on,I_P45_on,I_M45_on] = get_spectra2(d,pol,p_dict,outputs=['S0','S2','S3','I_P45','I_M45'])
+		
+	#Boltzmann OFF
+	pol = 1./sqrt(2)*np.array([1.0,1.0,0.0])
+	p_dict = {'Bfield':BFIELD,'rb85frac':RB85FRAC,'Btheta':90*np.pi/180,'Bphi':00*np.pi/180,'lcell':LCELL,'T':TEMP,'Dline':DLINE,'Elem':ELEM,'BoltzmannFactor':False}
+	[S0_off,S2_off,S3_off,I_P45_off,I_M45_off] = get_spectra2(d,pol,p_dict,outputs=['S0','S2','S3','I_P45','I_M45'])
+	
+	fig2 = plt.figure()
+	ax1a = fig2.add_subplot(311)
+	ax2a = fig2.add_subplot(312,sharex=ax1a)
+	ax3a = fig2.add_subplot(313,sharex=ax1a)
+	
+	ax1a.plot(d/1e3,S0_on,'r',lw=2,label=r'$\theta=0$')
+	ax1a.plot(d/1e3,S0_off,'b--',lw=2,label=r'$\theta=0$')
+	ax2a.plot(d/1e3,S2_on,'r',lw=2,label=r'$\theta=0$')
+	ax2a.plot(d/1e3,S2_off,'b--',lw=2,label=r'$\theta=0$')
+	ax3a.plot(d/1e3,S3_on,'r',lw=2,label=r'ON')
+	ax3a.plot(d/1e3,S3_off,'b--',lw=2,label=r'OFF')
+		
+	ax3a.set_xlabel('Detuning (GHz)')
+	ax1a.set_ylabel('S0')
+	ax2a.set_ylabel('S2')
+	ax3a.set_ylabel('S3')
+	
+	ax3a.set_xlim(d[0]/1e3,d[-1]/1e3)
+	ax3a.legend(loc=0)
+	
+	plt.show()
+	
+if __name__ == '__main__':
+	#test1()
+	#test2()
+	#test3()
+	#test4()
+	test6()

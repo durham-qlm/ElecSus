@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Functions to calculate the z-projection matrices.
+"""
+Functions to calculate the z-projection matrices.
 
 Calculates the full size matrices for the projection on the quantization 
 axis for electron spin, orbital angular momentum, nuclear spin, and the 

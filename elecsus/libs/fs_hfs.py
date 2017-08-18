@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Calculates the energy splitting matrices.
+"""
+Calculates the energy splitting matrices.
 
 Provides functions to calulate the three matrices needed from
 equations (6), (7) and (8) in the manual.
@@ -53,7 +54,7 @@ def Hfs(L,S,I):
     return Hfs
         
 def Hhfs(L,S,I):
-    """Provides the I dot J matrix (magnetic dipole interaction)"""
+    """Provides the I dot J matrix (hyperfine structure interaction)"""
     gS=int(2*S+1)
     Sx=jx(S)
     Sy=jy(S)

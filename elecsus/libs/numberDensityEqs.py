@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Functions to calculate the different number densities
+"""
+Functions to calculate the different number densities
 
 All formulae take in temperature in kelvin and return the
 atomic number densities.

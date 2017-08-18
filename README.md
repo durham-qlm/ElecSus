@@ -1,9 +1,9 @@
 ==============
-ElecSus v2.2.0
+ElecSus v3.0.0: Extension to Arbitrary magnetic field vectors
 ==============
 
 A program to calculate the electric susceptibility of an atomic ensemble.
-The program is designed to model weak probe laser spectra on the D-lines
+The program is designed to model weak-probe laser spectra on the D-lines
 of thermal alkali metal vapour cells. The program also includes fitting 
 routines which allow experimental parameters to be extracted from 
 experimental spectroscopic data.
@@ -11,6 +11,31 @@ experimental spectroscopic data.
 An alternate GUI based on the TraitsUI interface has been developed by Matthias Widman
 and co-authors and is available here: https://github.com/matwid/ElecSus
 
+--------------------
+New in version 3.0
+--------------------
+
+	-	*Major overhaul* that adds much additional functionality. See the new paper (https://arxiv.org/abs/1708.05305) for the full details. In brief, the additions are
+
+			-- To include calculation for an arbitrary angle between magnetic field axis and light propagation vector, 
+				in part based on the publication by Rotondaro, Zhdanov and Knize [ J. Opt. Soc. Am. B 32, 12, 2507 (2015) ] and references therein.
+				
+			-- A more general approach to light propagation, with the input polarisation more rigorously defined. 
+				*This change makes this version	backwards incompatible with the previous (v1.x.x, v2.x.x) versions*, since now we explicitly calculate 
+				the electric field at the exit of the medium and use Jones matrices/vectors to compute the Stokes parameters and other derived quantities. 
+				This also has the benefit of enabling the simulation of, for example: magnetic field gradients; polarising optical elements; birefringence or other optical imperfections.
+		
+			-- The GUI has been significantly changed to accomodate the extra magnetic field and polarisation options.
+		 
+			-- The old runcard method of calling elecsus is now dead and buried, since it's no longer compatible with the current version.
+		
+			-- The fitting routines have been completely rewritten to use parameter dictionaries. We now utilise the lmfit module (https://lmfit.github.io/lmfit-py/), 
+				instead of the vanilla scipy least-square minimisation modules. Performance is broadly similar (since lmfit also runs over the top of scipy.optimize modules, 
+				but there are many advantages of this model: Firstly, all parameters can now be selected to vary during a fit or be held constant, and bounds for these 
+				parameters can be given to prevent unphysical values from being returned. In addition, the differential_evolution solver is now availablle, which is very 
+				efficient at finding the global minimum for multi-parameter fits (we leave in random_restat and simulated_annealing for now, though these might disappear 
+				in future versions as it appears differential_evolution is much better in all tested cases so far...).
+			
 --------------------
 New in version 2.0
 --------------------
@@ -21,7 +46,7 @@ New in version 2.0
 		
 		Works on Windows and Linux, tested on Windows 7, 8.1, 10
 		and Ubuntu 14.04. Currently not tested on Mac.
-
+		
 	-	Rewritten fitting routines MLFittingRouine.py,
 		RRFittingRoutine.py and SAFittingRoutine.py to support
 		keyword arguments, passed to scipy.curve_fit / leastsq
@@ -31,7 +56,7 @@ New in version 2.0
 		- elecsus_methods.py
 		- libs/data_proc.py
 		
-		elecsus_new.py contains two simplified methods for either
+		elecsus_methods.py contains two simplified methods for either
 		calculating spectra or fitting data, and should be easier to 
 		interface with external code for, e.g., batch processing / 
 		fitting of data or generating 2D plots.
@@ -54,15 +79,6 @@ New in version 2.0
 		The example runcards and example data have been moved to sub-directories, 
 		/runcard and /sample_data, respectively.
 		
-	-	Added a new module, spectra_Efield.py
-		
-		This module allows calcualtion of spectra with the output of electric field vectors, rather
-		than spectroscopic quantities. This should allow calculation of spectra in cells with non-uniform
-		magnetic fields, by splitting the cell into sufficiently small parts that the field variation
-		across any one part is negligible. Spectroscopic quantities can be calculated from the electric
-		field vector by using Jones matrices.
-		
-
 -------------
 Prerequisites
 -------------
@@ -100,51 +116,33 @@ Usage
 
 	- After package installation, from the python interpreter type:
 	
-		from elecsus import elecsus_gui
+		>>> from elecsus import elecsus_gui
 		
-		elecsus_gui.start()
+		>>> elecsus_gui.start()
 
 	- In windows, double-click on the run_gui.bat file in the elecsus directory
 
 	- Alternately, open a terminal or command-line window and navigate to the ElecSus directory. Type:
 
-		python elecsus_gui.py
-			
-	2. For Runcard operation:
-
-	- Open a terminal window and move to the directory where the files have been extracted to.
-
-	- To run the program taking parameters from runcard.py type:
-
-		python elecsus_runcard.py
-
-	- To run using parameters from a particular runcard type
-
-		python elecsus_runcard.py <run card file name>
-
-	- So to run a the first D1 example, type
-
-		python elecsus.py runcard_D1sample.py
-
-	- To run the second example, type
-
-		python elecsus.py runcard_D2sample.py
+		>>> python elecsus_gui.py
 		
 
-	3. For integration into external code:
+	2. For integration into external code:
 	
 	- The elecsus_methods.py module contains two methods, calculate() and fit_data(), 
-	  which allow for easy integration into external codes. See the elecsus_methods.py source
-	  for more details
+	  which allow for easy integration into external codes. See the elecsus_methods.py doc strings
+	  for more details and example usage
 
 ------
 Manual
 ------
 
-For GUI documentation, see docs/ElecSus_GUI_UserGuide.pdf
+For GUI documentation, see docs/ElecSus_GUI_UserGuide.pdf (finally updated!)
 
-For the ElecSus paper, go to http://dx.doi.org/10.1016/j.cpc.2014.11.023
+For the original ElecSus paper, go to http://dx.doi.org/10.1016/j.cpc.2014.11.023
 and download the paper. It is published open-access and therefore freely available.
+
+For the ElecSus paper that goes with version 3.0.0, see XXXXXXXXXXXXXX link.
 
 -------
 License
@@ -157,6 +155,13 @@ Apache License, Version 2.0. A Copy of the license is provided.
 Change Log
 -----------
 
+V 3.0.0
+
+	- Main program overhaul to include arbitrary angle between magnetic field axis and light propagation vector.
+	- Large update to the GUI to support the above change (see above)
+	- Initial ground state populations are now calculated via the Boltzmann factor rather than assuming equal populations
+	- Some housekeeping on many of the supporting files in the libs/ directory - mostly to tidy up redundant code, added more comments and examples etc.
+	
 V 2.2.0
 
 	- GUI version number and ElecSus version number are now the same

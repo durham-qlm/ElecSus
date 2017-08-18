@@ -25,6 +25,13 @@ Called by EigenSystem.py
 from numpy import pi, sqrt
 from FundamentalConstants import *
 
+class IdealAtom:
+	""" Constants for an ideal atom with no hyperfine structure, and only electron spin """
+	I = 0
+	As = 0
+	gI = 0
+	mass = 85*amu
+	
 class Rb85:
     """Constants relating to the rubidium-85 atom"""
     I  = 2.5         #Nuclear spin
@@ -140,8 +147,22 @@ class NaD2Transition:
     dipoleStrength=3.0*sqrt(e0*hbar*(2.0*NatGamma*(10.0**6))*(wavelength**3)/(8.0*pi))
     v0=508.8487162e12 #Sodium D1 linecentre in Hz
 
+
+class IdealD1Transition:
+    """Constants relating to the rubidium D1 transition"""
+    wavelength = 780e-9 #The weighted linecentre of the rubidium D1 line in m
+    wavevectorMagnitude = 2.0*pi/wavelength #Magnitude of the wavevector
+    NatGamma = 6 #Rubidium D1 natural linewidth in MHz
+    dipoleStrength = 3.0*sqrt(e0*hbar*(2.0*NatGamma*(10.0**6))*(wavelength**3)/(8.0*pi))
+    v0 = 377107407.299e6 #The weighted linecentre of the rubidium D1 line in Hz
+	
 # Isotope-Transition constants
 
+class Ideal_D1:
+	Ap = 0
+	Bp = 0
+	IsotopeShift = 0
+	
 class Rb85_D1:
     """Constants relating to rubidium-85 and the D1 transition"""
     #Hyperfine constants in units of MHz

@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Contains fundamental constants
+"""
+Loads fundamental constants from scipy
 
 Called by AtomConstants.py and EigenSystem.py
-
 """
 
 from numpy import pi, sqrt

@@ -16,21 +16,23 @@
 """
 To use:
 
-In any other python file,
+In any other python file, or from the interpreter:
 
-import sys
-sys.path.append('<path to this file>')
-from durhamcolours import *
+>>> import sys
+>>> sys.path.append('<path to this file>')
+>>> from durhamcolours import *
 
-or just the last line if this file is in the same directory
+alternately, if ElecSus is installed:
 
-In addition, from any python interactive session or script,
+>>> from elecsus.libs.durhamcolours import *
 
-durhamcolours.help()
+From any python interactive session or script,
+
+>>> durhamcolours.help_dcols()
 
 will print a plot with all of the colours on, named (requires matplotlib).
 
-JK
+JK, 2017
 """
 
 ##
