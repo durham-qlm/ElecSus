@@ -9,7 +9,7 @@ ElecSus.egg-info/top_level.txt
 elecsus/__init__.py
 elecsus/elecsus_gui.py
 elecsus/elecsus_methods.py
-elecsus/docs/ElecSus GUI User Guide.pdf
+elecsus/docs/ElecSus_GUI_UserGuide.pdf
 elecsus/images/elecsus-logo.png
 elecsus/images/elecsus_t_group.ico
 elecsus/images/jqc-logo.png
@@ -30,12 +30,13 @@ elecsus/libs/data_proc.py
 elecsus/libs/durhamcolours.py
 elecsus/libs/fs_hfs.py
 elecsus/libs/numberDensityEqs.py
-elecsus/libs/polarisation_animation.py
 elecsus/libs/polarisation_animation_mpl.py
 elecsus/libs/preamble.py
-elecsus/libs/solve_dielectric - Copy.py
 elecsus/libs/solve_dielectric.py
 elecsus/libs/spectra.py
 elecsus/libs/spectra_energies.py
-elecsus/libs/spectra_idealatom.py
 elecsus/libs/sz_lsi.py
+elecsus/tests/__init__.py
+elecsus/tests/fitting_tests.py
+elecsus/tests/rotondaro_tests.py
+elecsus/tests/spectroscopy_tests.py
