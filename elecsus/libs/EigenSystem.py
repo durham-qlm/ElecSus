@@ -61,6 +61,8 @@ class Hamiltonian(object):
             transition = IdealD1Transition
             atom_transition = Ideal_D1
 
+        self.atom = atom
+		
         if (Trans=='D1') and (Isotope=='Rb85'):
             transition = RbD1Transition
             atom_transition = Rb85_D1
@@ -136,7 +138,7 @@ class Hamiltonian(object):
         """Function to produce the excited state manifold"""
         dp = int(3*(2*S+1)*(2*I+1))  # total dimension of matrix
         # The actual value of FS is unimportant.
-        FS = 7.123e6       # Fine structure splitting (of Rb - careful when using other elements at high B fields)
+        FS = self.atom.FS # Fine structure splitting
         Ap = A_hyp_coeff
         Bp = B_hyp_coeff
         # Add P-term fine and hyperfine interactions

@@ -38,7 +38,7 @@ import time
 
 def fit_function(x,E_x,E_y,E_phase,T,lcell,Bfield,Btheta,Bphi,GammaBuf,shift,
 							DoppTemp=20,rb85frac=72.17,K40frac=0.01,K41frac=6.73,
-							Elem='Rb',Dline='D2',Constrain=True,output='S0'):
+							Elem='Rb',Dline='D2',Constrain=True,output='S0', verbose=False):
 	"""
 	Fit function that is used by lmfit. Essentially just a wrapper for the get_spectra method,
 	but the arguments are specified explicitly rather than being inside a parameter dictionary.
@@ -48,7 +48,8 @@ def fit_function(x,E_x,E_y,E_phase,T,lcell,Bfield,Btheta,Bphi,GammaBuf,shift,
 	For explanation of parameters, see the documentation for get_spectra (in spectra.py)
 	"""
 	
-	print 'Bfield (G): ', Bfield
+	if verbose:
+		print 'Parameters: ', Bfield, T, lcell, E_x, E_y, E_phase, Btheta, Bphi, GammaBuf, shift, DoppTemp, rb85frac
 	
 	# Ex / Ey separated to allow for fitting polarisation
 	E_in = np.array([E_x,E_y*np.exp(1.j*E_phase),0.])

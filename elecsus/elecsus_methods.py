@@ -44,7 +44,7 @@ else:
 #Stop warnings about casting complex numbers
 warnings.simplefilter("ignore")
 
-verbose = False
+verbose = True
 
 def calculate(detuning_range, E_in=[1,0,0], p_dict={}, outputs=None):
 	"""

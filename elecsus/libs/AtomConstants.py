@@ -38,6 +38,7 @@ class Rb85:
     As = 1011.910813 #Ground state hyperfine constant in units of MHz
     gI = -0.00029364 #nuclear spin g-factor
     mass = 84.911789732*amu
+    FS = 7.123e6 # Fine-structure splitting
 
 class Rb87:
     """Constants relating to the rubidium-87 atom"""
@@ -45,6 +46,7 @@ class Rb87:
     As = 3417.341305452145 
     gI = -0.0009951414 
     mass = 86.909180520*amu
+    FS = 7.123e6 # Fine-structure splitting (MHz)
 
 class Cs:
     """Constants relating to the caesium-133 atom"""
@@ -52,6 +54,7 @@ class Cs:
     As = 2298.1579425 #Ground state hyperfine constant in units of MHz
     gI = -0.00039885395 #nuclear spin g-factor
     mass = 132.905451931*amu
+    FS = 351725718.50 - 335116048.807 # Fine-structure splitting (MHz)
 
 class K39:
     """Constants relating to the potassium-39 atom"""
@@ -59,6 +62,7 @@ class K39:
     As = 230.8598601
     gI = -0.00014193489
     mass = 38.96370668*amu
+    FS = 391016185.94 - 389286074.580 # Fine-structure splitting (MHz)
 
 class K40:
     """Constants relating to the potassium-40 atom"""
@@ -66,20 +70,24 @@ class K40:
     As = -285.7308
     gI = 0.000176490
     mass = 39.96399848*amu
-
+    FS = 391016185.94 - 389286074.580 # Fine-structure splitting (MHz)
+	
 class K41:
     """Constants relating to the potassium-41 atom"""
     I  = 1.5
     As = 127.0069352
     gI = -0.00007790600
     mass = 40.96182576*amu
-
+    FS = 391016185.94 - 389286074.580 # Fine-structure splitting (MHz)
+	
 class Na:
     """Constants relating to the sodium-23 atom"""
     I  = 1.5
     As = 885.81306440
     gI = -0.00080461080
     mass = 22.9897692807*amu
+    FS = 508.8487162e6 - 508.3331958e6 # Fine-structure splitting (MHz)
+	
 
 # Element-Transition constants
 

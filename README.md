@@ -1,4 +1,4 @@
-ElecSus v3.0.0: Extension to Arbitrary magnetic field vectors
+ElecSus v3.0.1: Extension to Arbitrary magnetic field vectors
 ==============
 
 A program to calculate the electric susceptibility of an atomic ensemble. The program is designed to model weak-probe laser spectra on the D-lines of thermal alkali metal vapour cells. The program also includes fitting routines which allow experimental parameters to be extracted from experimental spectroscopic data.
@@ -102,6 +102,13 @@ Apache License, Version 2.0. A Copy of the license is provided.
 -----------
 Change Log
 -----------
+
+V 3.0.1
+
+- Minor fix: missing square-root in the solve_dielectric.py which was causing errors for the non-analytic magnetic field angles
+- Updated documentation in solve_dielectric.py
+- Added a new example to the /tests/ subdirectory for non-uniform magnetic field fitting (to reproduce figure 8 of the new paper)
+- Minor addition: use proper fine-structure constants for all alkalis, instead of just the value for Rb
 
 V 3.0.0
 

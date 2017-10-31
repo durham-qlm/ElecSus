@@ -17,7 +17,7 @@ Solve the dielectric tensor for the roots of the complex refractive index by set
 
 Use analytic solutions for the 'easy' geometries - Faraday (B-field aligned with wavevector) and Voigt (B-field orthogonal to k-vector)
 Use sympy to calculate solutions for all other non-trivial geometries.
-Since the solutions for the non-trivial geometries depend on the susceptibility, array operations don't work any more, so it's *much* slower to calculate
+Since the solutions for the non-trivial geometries depend on the susceptibility, array operations don't completely work, so it's *much* slower to calculate
 
 """
 
@@ -34,8 +34,33 @@ import time
 
 from FundamentalConstants import e0
 
-def solve_diel(chiL, chiR, chiZ, THETA, Bfield, verbose=False):
-	''' Use symbolic python to solve for the roots of n-squared in the dielectric tensor matrix '''
+def solve_diel(chiL, chiR, chiZ, THETA, Bfield, verbose=False,force_numeric=False):
+	''' 
+	Solves the wave equation to find the two propagating normal modes of the system, 
+	for a given magnetic field angle THETA. For the general case, use symbolic python to 
+	solve for the roots of n-squared.
+	(Escapes this slow approach for the two analytic cases for the Voigt and Faraday geometries)
+	
+	Returns the rotation matrix to transform the coordinate system into the normal mode basis,
+	and returns the two refractive index arrays.
+	
+	Inputs:
+	
+		chiL, chiR, chiZ	:	1D lists or numpy arrays, of length N, that are the frequency-dependent electric susceptibilities
+		THETA				:	Float, Magnetic field angle in radians
+		Bfield				:	Float, Magnitude of applied magnetic field (skips slow approach if magnetic field is very close to zero)
+		
+	Options:
+		
+		verbose			:	Boolean to output more print statements (timing reports mostly)
+		force_numeric	:	If True, forces all angles to go through the numeric approach, rather than escaping for the analytic cases (THETA=0, THETA=pi/2...)
+	
+	Outputs:
+		RotMat	:	Rotation matrix to transform coordinate system, dimensions (3, 3, N)
+		n1		:	First solution for refractive index, dimensions (N)
+		n2		:	Second solution for refractive index, dimensions (N)
+	
+	'''
 
 
 	if verbose: 
@@ -51,7 +76,7 @@ def solve_diel(chiL, chiR, chiZ, THETA, Bfield, verbose=False):
 	#### Escape the slow loop for analytic (Faraday and Voigt) cases
 	## For these analytic cases we can use array operations and it is therefore
 	## much faster to compute
-	if abs(THETA%(2*np.pi) - np.pi/2) < 1e-4:
+	if (abs(THETA%(2*np.pi) - np.pi/2) < 1e-4) and (not force_numeric):
 		# ANALYTIC SOLNS FOR VOIGT
 		if verbose: print 'Voigt - analytic'
 		
@@ -76,10 +101,10 @@ def solve_diel(chiL, chiR, chiZ, THETA, Bfield, verbose=False):
 			print n1.shape
 			print n2.shape
 		
-	elif (abs(THETA) < 1e-4) or ((abs(THETA - np.pi)) < 1e-4) or abs(Bfield)<1e-2: ## Use Faraday geometry if Bfield is very close to zero
+	elif ((abs(THETA) < 1e-4) or ((abs(THETA - np.pi)) < 1e-4) or abs(Bfield)<1e-2)  and (not force_numeric): ## Use Faraday geometry if Bfield is very close to zero
 		# ANALYTIC SOLNS FOR FARADAY
 		#if verbose: 
-		if verbose: print 'Faraday - analytic'
+		if verbose: print 'Faraday - analytic TT'
 		
 		ex = 0.5 * (2. + chiL + chiR)
 		exy = 0.5j * (chiR - chiL)
@@ -88,8 +113,8 @@ def solve_diel(chiL, chiR, chiZ, THETA, Bfield, verbose=False):
 		n1 = np.sqrt(ex + 1.j*exy)
 		n2 = np.sqrt(ex - 1.j*exy)
 
-		ev1 = [1.j*np.ones(len(ex)),np.ones(len(ex)),np.zeros(len(ex))]
-		ev2 = [-1.j*np.ones(len(ex)),np.ones(len(ex)),np.zeros(len(ex))]
+		ev1 = np.array([-1.j*np.ones(len(ex)),np.ones(len(ex)),np.zeros(len(ex))]) 
+		ev2 = np.array([1.j*np.ones(len(ex)),np.ones(len(ex)),np.zeros(len(ex))])
 		ev3 = [np.zeros(len(ex)),np.zeros(len(ex)),np.ones(len(ex))]
 
 		if (abs(THETA) < 1e-4):
@@ -105,7 +130,7 @@ def solve_diel(chiL, chiR, chiZ, THETA, Bfield, verbose=False):
 			print n2.shape
 
 	else:
-		if verbose: print 'Non-analytic angle.. This will take a while...'	
+		if verbose: print 'Non-analytic angle.. This will take a while...'	##### THIS IS THE ONE THAT's WRONG....
 		# set up sympy symbols
 		theta = Symbol('theta',real=True)
 		n_sq = Symbol('n_sq')
@@ -127,131 +152,67 @@ def solve_diel(chiL, chiR, chiZ, THETA, Bfield, verbose=False):
 
 		# Find solutions for complex indices for a given angle
 		solns = solve(det(DielMat_sub), n_sq)
-		#solns = list(solveset(det(DielMat_sub), n_sq)) <<< for some reason this doesn't like finding null eigenvectors later on..?
-		
-		#print solns
-		
-		#print '\n\n'
-		#print solns_set
-			
-		#print '\n\n\n'
-		#print solns[0]
-		#print '\n'
-		#print solns_set[0]
-		
-		#time.sleep(5)
-		
-		
+
 		et3a = time.clock() - stt
 		#print et3a
-		
-		#print solns[0]
-		#print'\n',solns[1]
 		
 		# Find first refractive index
 		DielMat_sub1 = DielMat_sub.subs(n_sq, solns[0])
 		n1 = np.zeros(len(chiL),dtype='complex')
+		n1old = np.zeros(len(chiL),dtype='complex')
 		# Find second refractive index
 		DielMat_sub2 = DielMat_sub.subs(n_sq, solns[1])
 		n2 = np.zeros(len(chiL),dtype='complex')
+		n2old = np.zeros(len(chiL),dtype='complex')
 		
 		et3b = time.clock() - stt
 		
-		#D_subN1 = DielMat_sub.subs(n_sq, solns[0])
-		#D_subN2 = DielMat_sub.subs(n_sq, solns[1])
 		Dsub1 = lambdify((e_x,e_xy,e_z), DielMat_sub1, 'numpy')
 		Dsub2 = lambdify((e_x,e_xy,e_z), DielMat_sub2, 'numpy')
 		
-		## with solve()
-		#nsub1 = lambdify((e_x,e_xy,e_z), solns[0], 'numpy')
-		#nsub2 = lambdify((e_x,e_xy,e_z), solns[1], 'numpy')
-
-		### with solveset()
 		nsub1 = lambdify((e_x,e_xy,e_z), solns[0], 'numpy')
 		nsub2 = lambdify((e_x,e_xy,e_z), solns[1], 'numpy')
-		
-		
-		'''
-		# TEST equivalence of solve() and solveset() methods...
-		E_x = 1
-		E_xy = 1+1.j
-		E_z = 0.22340987
-		
-		n1eval = nsub1(E_x,E_xy,E_z)
-		n2eval = nsub2(E_x,E_xy,E_z)
-		n1seteval = nsubset1(E_x,E_xy,E_z)
-		n2seteval = nsubset2(E_x,E_xy,E_z)
-		
-		print n1eval
-		print n2eval
-		print n1seteval
-		print n2seteval
-		'''
-		
-		
-		#time.sleep(10)
-		
-		############
 		
 		# Initialise rotation matrix
 		RotMat = np.zeros((3,3,len(chiL)),dtype='complex')
 		
-		et3 = time.clock() - stt
+		et3c = time.clock() - stt
 		
+		# populate refractive index arrays
+		n1 = np.sqrt(nsub1(0.5*(2.+chiL+chiR), 0.5j*(chiR-chiL), (1.0+chiZ)))
+		n2 = np.sqrt(nsub2(0.5*(2.+chiL+chiR), 0.5j*(chiR-chiL), (1.0+chiZ)))
+		
+		et3 = time.clock() - stt
+
 		if verbose: 
 			print 'setup time:', et1, et1
-			print 'solve nsq: ', et2, et2-et1
-			print 'sub in: ', et3, et3a, et3b, et3-et2
-		
-		
-		#time.sleep(5)
-		
-		# loop over all elements of chiL,R,Z ---- !!!!!!!!!! massive impact on speed !!!!!!!!!!
+			print 'solve nsq: (total/solve/sub in) ', et3a, et3a-et2, et2-et1
+			print 'get nsq arrays (tot time / populate ref. index / gen. lambdify / sub in): ', et3, et3-et3c, et3c-et3b, et3b-et3a
+			
+		# loop over all elements of chiL,R,Z to populate eigenvectors
+		# time-limiting step for arrays of length >~ 5000
 		for i, (cL, cR, cZ) in enumerate(zip(chiL,chiR,chiZ)):
-			if verbose: print 'Detuning point i: ',i
+			#if verbose: print 'Detuning point i: ',i
 			
 			#time diagnostics
 			st = time.clock()
 			
-			'''
+			
+			'''	
+		## OLD and slow method::
 			# Sub in values of susceptibility
 			DielMat_sub1a = DielMat_sub1.subs(e_x, 0.5*(2.+cL+cR))
 			DielMat_sub1a = DielMat_sub1a.subs(e_xy, 0.5j*(cR-cL))
 			DielMat_sub1a = DielMat_sub1a.subs(e_z, (1.0+cZ))
-			'''
+			
 			et1 = time.clock() - st
 			
-			
-			'''
 			# Evaluate and convert to numpy array
 			DM = np.array(DielMat_sub1a.evalf())
 			DMa = np.zeros((3,3),dtype='complex')
 			for ii in range(3):
 				for jj in range(3):
 					DMa[ii,jj] = np.complex128(DM[ii,jj])
-			'''
-			
-			# Sub in values of susceptibility
-			DMaNP = Dsub1(0.5*(2.+cL+cR), 0.5j*(cR-cL), (1.0+cZ))
-			#print DMa
-			
-			#print 'SymPy:'
-			#print DMa
-			#print DMa.shape, type(DMa)
-			#print 'Numpy'
-			#print DMaNP
-			#print DMaNP.shape, type(DMaNP)
-			#et1 = time.clock() - st
-			
-			
-			''''
-			# Evaluate and convert to numpy array
-			DM = np.array(DielMat_sub1a.evalf())
-			DMa = np.zeros((3,3),dtype='complex')
-			for ii in range(3):
-				for jj in range(3):
-					DMa[ii,jj] = np.complex128(DM[ii,jj])
-			'''
 			
 			et2 = time.clock() - st
 		
@@ -259,13 +220,43 @@ def solve_diel(chiL, chiR, chiZ, THETA, Bfield, verbose=False):
 			#ev1 = Matrix(DMa).nullspace()
 			#print 'Sympy: ', ev1
 			
-			#ev1old = nullOld(DMa).T[0]
+			ev1old = nullOld(DMa).T[0]
+			#ev1 = null(DMaNP).T
+			
+			# sub in for ref. index
+			n1soln = solns[0].subs(e_x, 0.5*(2.+cL+cR))
+			n1soln = n1soln.subs(e_xy, 0.5j*(cR-cL))
+			n1soln = n1soln.subs(e_z, (1.0+cZ))
+			
+			# Populate the refractive index array
+			n1old[i] = np.sqrt(np.complex128(n1soln.evalf()))
+		## /OLD method
+			'''
+		
+			# NEW method
+			
+			# Sub in values of susceptibility
+			DMaNP = Dsub1(0.5*(2.+cL+cR), 0.5j*(cR-cL), (1.0+cZ))
+			#print DMa
 			ev1 = null(DMaNP).T
+			# Populate the refractive index array
+			#n1[i] = np.sqrt(nsub1(0.5*(2.+cL+cR), 0.5j*(cR-cL), (1.0+cZ)))
 			
-			#print 'Eigenvectors ...'
-			#print ev1old			
-			#print ev1
 			
+			'''
+			## METHOD COMPARISON
+			
+			print 'SymPy:'
+			print DMa
+			print DMa.shape, type(DMa)
+			print 'Numpy'
+			print DMaNP
+			print DMaNP.shape, type(DMaNP)
+			
+			print 'Eigenvectors ...'
+			print 'Old: ', ev1old			
+			print 'New: ',ev1
+			'''
 			
 			#print '\n\n\n'
 			
@@ -273,76 +264,60 @@ def solve_diel(chiL, chiR, chiZ, THETA, Bfield, verbose=False):
 			
 			et3 = time.clock() - st
 			
-			'''
-			# sub in for ref. index
-			n1soln = solns[0].subs(e_x, 0.5*(2.+cL+cR))
-			n1soln = n1soln.subs(e_xy, 0.5j*(cR-cL))
-			n1soln = n1soln.subs(e_z, (1.0+cZ))
-			'''
-			
-			# Populate the refractive index array
-			n1[i] = nsub1(0.5*(2.+cL+cR), 0.5j*(cR-cL), (1.0+cZ))
-			
 			et4 = time.clock() - st
 			
 			#
 			## Now repeat the above for second eigenvector
 			#
 			
+		## NEW
 			# Sub in values of susceptibility
-			DMa = Dsub2(0.5*(2.+cL+cR), 0.5j*(cR-cL), (1.0+cZ))
-		
+			DMaNP = Dsub2(0.5*(2.+cL+cR), 0.5j*(cR-cL), (1.0+cZ))
+			# Find null eigenvector
+			ev2 = null(DMaNP).T
+			# Populate the refractive index array
+			#n2[i] = np.sqrt(nsub2(0.5*(2.+cL+cR), 0.5j*(cR-cL), (1.0+cZ)))
+
 			et5 = time.clock() - st
 			
 			'''
+		## OLD
 			# Evaluate and convert to numpy array
+			DielMat_sub2a = DielMat_sub2.subs(e_x, 0.5*(2.+cL+cR))
+			DielMat_sub2a = DielMat_sub2a.subs(e_xy, 0.5j*(cR-cL))
+			DielMat_sub2a = DielMat_sub2a.subs(e_z, (1.0+cZ))
+			
 			DM = np.array(DielMat_sub2a.evalf())
 			DMa = np.zeros((3,3),dtype='complex')
 			for ii in range(3):
 				for jj in range(3):
 					DMa[ii,jj] = np.complex128(DM[ii,jj])
-			'''
-			
+					
 			et6 = time.clock() - st
 			
 			# use scipy to find eigenvector
-			ev2 = null(DMa).T
-
+			ev2old = nullOld(DMa).T[0]
+			
 			et7 = time.clock() - st
 			
-			'''
 			# sub in for ref. index
 			n2soln = solns[1].subs(e_x, 0.5*(2.+cL+cR))
 			n2soln = n2soln.subs(e_xy, 0.5j*(cR-cL))
 			n2soln = n2soln.subs(e_z, (1.0+cZ))
-			'''
 			
 			# Populate the refractive index array
-			n2[i] = nsub2(0.5*(2.+cL+cR), 0.5j*(cR-cL), (1.0+cZ))
-
-			et8 = time.clock() - st
+			n2old[i] = np.sqrt(np.complex128(n2soln.evalf()))
+			'''
+			
 			
 			# Populate the rotation matrix
 			RotMat[:,:,i] = [ev1, ev2, [0,0,1]]
 			
-			if verbose:
-				print 'Time elapsed:'
-				print '1 Sub into matrix:', et1, et1
-				print '1 Eval and convert to numpy:', et2, et2-et1
-				print '1 Get eig vector:', et3, et3-et2
-				print '1 Get ref index array:', et4, et4-et3
-				print '2 Sub into matrix:', et5, et5 - et4
-				print '2 Eval and convert to numpy:', et6, et6 - et5
-				print '2 Get eig vector:', et7, et7 - et6
-				print '2 Get ref index array:', et8, et8 - et7
-		
-			## MAKE THIS WORK ON ARRAYS OF CHI_R/L/Z ..?
 			
-		if verbose: 
-			print RotMat.shape
-			print n1.shape
-			print n2.shape
-	
+		et_tot = time.clock() - stt
+		if verbose:
+			print 'Time elapsed (non-analytic angle):', et_tot
+			
 	if verbose: print 'SD done'
 	return RotMat, n1, n2
 	
@@ -485,3 +460,42 @@ def calculation_time_analysis():
 	for angle in [0, np.pi/32, np.pi/16, np.pi/8, np.pi/4, np.pi/2]:
 		print 'Angle (degrees): ',angle*180/np.pi
 		RotMat, n1, n2 = solve_diel(chiL,chiR,chiZ,angle)
+		
+def test_equivalence():
+	""" Test numeric vs analytic solutions """
+	
+	import spectra as sp
+	
+	#analytic
+	p_dict = {'Bfield':15000,'rb85frac':1,'Btheta':0*np.pi/180,'Bphi':0*np.pi/180,'lcell':1e-3,'T':84,'Dline':'D2','Elem':'Rb'}
+	chiL1,chiR1,chiZ1 = sp.calc_chi([-18400],p_dict)
+	RotMat1, n11, n21 = solve_diel(chiL1,chiR1,chiZ1,0,150,force_numeric=False)
+	
+	#numeric
+	chiL2, chiR2, chiZ2 = chiL1, chiR1, chiZ1
+	#chiL2,chiR2,chiZ2 = sp.calc_chi([-18400],p_dict)
+	RotMat2, n12, n22 = solve_diel(chiL2,chiR2,chiZ2,0,150,force_numeric=True)
+	
+	print 'RM 1'
+	print RotMat1
+
+	print 'RM 2'
+	print RotMat2	
+	
+	print 'n1_1 (analytic)'
+	print n11
+	print 'n1_2'
+	print n12
+	print 'n2_1 (analytic)'
+	print n21
+	print 'n2_2'
+	print n22
+	
+	print 'chi1'
+	print chiL1, chiR1, chiZ1
+
+	print 'chi2'
+	print chiL2, chiR2, chiZ2
+	
+if __name__ == '__main__':
+	test_equivalence()

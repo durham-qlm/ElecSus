@@ -29,7 +29,7 @@ def jp(jj):
     jp = zeros((dim,dim))
     z = arange(dim)
     m = jj-z
-    while b<dim-1.0:
+    while b<dim-1:
         mm = m[b+1]
         jp[b,b+1] = sqrt(jj*(jj+1)-mm*(mm+1)) 
         b = b+1

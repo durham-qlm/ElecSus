@@ -16,6 +16,11 @@
 
 ElecSus GUI
 
+v3.0.1 (2017-09-25)
+	-- Fix missing square-root in solve_dielectric.py
+	-- Implement proper fine-structure constants properly for all alkalis
+	
+	
 v3.0.0 (2017-08-18)
 	-- MAJOR OVERHAUL to add many new program features and streamline a lot of others. This, unfortunately but necessarily, makes version 3 incompatible with previous versions. The changes are detailed below. The phyics are discussed in the new paper, a pre-print can be found at https://arxiv.org/abs/1708.05305
 	
@@ -89,7 +94,7 @@ LICENSE info: APACHE version 2
 James Keaveney and co-authors
 2017
 """
-__version__ = '3.0.0'
+__version__ = '3.0.1'
 
 #!/usr/bin/env python
 import matplotlib
@@ -2346,7 +2351,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 		""" Call elecsus to fit data. Some sanity checking takes place first. """
 
 		## check for things that will prevent fitting from working, e.g. no data loaded - halt fitting if found
-		if self.y_fit_array is None:
+		if self.y_fit_array == None:
 			#warn about no data present
 			dlg = wx.MessageDialog(self, "No experimental data has been loaded, cannot proceed with fitting...", "No no no", wx.OK|wx.ICON_EXCLAMATION)
 			dlg.ShowModal()
