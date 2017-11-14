@@ -322,7 +322,7 @@ def solve_diel(chiL, chiR, chiZ, THETA, Bfield, verbose=False,force_numeric=Fals
 	return RotMat, n1, n2
 	
 
-def null(A,tol=1e-7):
+def null(A,tol=1e-6):
 	ee, ev = la.eig(A)
 	
 	#for E,V in zip(ee,ev.T):

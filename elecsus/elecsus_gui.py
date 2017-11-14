@@ -94,7 +94,7 @@ LICENSE info: APACHE version 2
 James Keaveney and co-authors
 2017
 """
-__version__ = '3.0.1'
+__version__ = '3.0.2'
 
 #!/usr/bin/env python
 import matplotlib
@@ -2313,7 +2313,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 			dlg_choice.Destroy()
 		
 			dlg_open = wx.FileDialog(self,"Choose 2-column csv file (Detuning, Transmission)",
-									self.dirname,"","*.csv",wx.OPEN)
+									self.dirname,"","*.csv",wx.FD_OPEN)
 			
 			# if OK button clicked, open and read file
 			if dlg_open.ShowModal() == wx.ID_OK:

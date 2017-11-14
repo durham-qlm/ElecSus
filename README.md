@@ -103,6 +103,10 @@ Apache License, Version 2.0. A Copy of the license is provided.
 Change Log
 -----------
 
+V 3.0.2
+
+- Minor fix: changed a wx.OPEN to wx.FD_OPEN that affected newer versions of wx FileDialogs not opening properly
+
 V 3.0.1
 
 - Minor fix: missing square-root in the solve_dielectric.py which was causing errors for the non-analytic magnetic field angles
