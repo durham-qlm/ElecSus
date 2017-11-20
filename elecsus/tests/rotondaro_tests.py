@@ -72,7 +72,7 @@ def test2():
 	## 700 G, 84 C, Cs, 75mm
 
 	p_dict = {'Bfield':700,'Btheta':90*np.pi/180,'lcell':75e-3,'T':84,'Dline':'D2','Elem':'Cs'}
-	pol = 1./sqrt(2)*np.array([1.0,1.0,0.0])
+	pol = 1./np.sqrt(2)*np.array([1.0,1.0,0.0])
 	TVx = get_spectra(d,pol,p_dict,outputs=['I_M45','I_P45','Ix','Iy','S0','Iz'])
 	
 	fig2 = plt.figure()
@@ -108,11 +108,11 @@ def test3():
 	Arbitrary Filter - non-optimised
 	"""
 	
-	print 'This takes a while (several minutes) to compute - be patient!''
+	print 'This takes a while to compute - be patient!'
 	
 	d = np.linspace(-15000,15000,300)
 	p_dict = {'Bfield':500,'rb85frac':1,'Btheta':87*np.pi/180,'Bphi':00*np.pi/180,'lcell':75e-3,'T':100,'Dline':'D2','Elem':'Cs'}
-	pol = 1./sqrt(2)*np.array([1.0,0.0,0.0])
+	pol = np.array([1.0,0.0,0.0])
 	TVx = get_spectra(d,pol,p_dict,outputs=['I_M45','I_P45','Ix','Iy','S0','Iz'])
 	
 	fig2 = plt.figure()
@@ -148,13 +148,13 @@ def test4():
 	Arbitrary Filter - optimised
 	"""
 	
-	print 'This takes a while (several minutes) to compute - be patient!''
+	print 'This takes a while to compute - be patient!'
 	
 	d = np.linspace(-15000,15000,300)
 	#Voigt
 	#p_dict = {'Bfield':700,'rb85frac':1,'Btheta':90*np.pi/180,'lcell':75e-3,'T':84,'Dline':'D2','Elem':'Cs'}
 	p_dict = {'Bfield':1000,'rb85frac':1,'Btheta':88*np.pi/180,'Bphi':00*np.pi/180,'lcell':75e-3,'T':93,'Dline':'D2','Elem':'Cs'}
-	pol = 1./sqrt(2)*np.array([1.0,0.0,0.0])
+	pol = np.array([1.0,0.0,0.0])
 	TVx = get_spectra(d,pol,p_dict,outputs=['I_M45','I_P45','Ix','Iy','S0','Iz'])
 	
 	fig2 = plt.figure()
