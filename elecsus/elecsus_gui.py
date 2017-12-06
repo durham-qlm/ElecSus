@@ -100,7 +100,7 @@ LICENSE info: APACHE version 2
 James Keaveney and co-authors
 2017
 """
-__version__ = '3.0.2'
+__version__ = '3.0.3'
 
 #!/usr/bin/env python
 import matplotlib
