@@ -1471,7 +1471,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 		self.y_arrays = [None]*len(self.plot_outputs)
 		self.x_expt_arrays = [None]*len(self.plot_outputs)
 		self.y_expt_arrays = [None]*len(self.plot_outputs)
-		self.x_fit_array, self.y_fit_array = None,None
+		self.x_fit_array, self.y_fit_array = [], []
 		
 		# x and y-limits
 		self.xlim = None
@@ -2351,7 +2351,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 		""" Call elecsus to fit data. Some sanity checking takes place first. """
 
 		## check for things that will prevent fitting from working, e.g. no data loaded - halt fitting if found
-		if self.y_fit_array == None:
+		if len(self.y_fit_array) > 0:
 			#warn about no data present
 			dlg = wx.MessageDialog(self, "No experimental data has been loaded, cannot proceed with fitting...", "No no no", wx.OK|wx.ICON_EXCLAMATION)
 			dlg.ShowModal()

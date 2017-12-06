@@ -268,7 +268,7 @@ def calc_chi_energies(X, p_dict,verbose=False):
 	# Rubidium energy levels
 	if Elem=='Rb':
 		rb87frac=1.0-rb85frac  # Rubidium-87 fraction
-		'''
+		
 		if rb85frac!=0.0: #Save time if no rubidium-85 required
 			Rb85atom = AC.Rb85
 			#Hamiltonian(isotope,transition,gL,Bfield)
@@ -295,7 +295,7 @@ def calc_chi_energies(X, p_dict,verbose=False):
 													Rb85_ES.ds,Rb85_ES.dp,
 													Dline,'Z',BoltzmannFactor,T+273.16)
 			
-		'''
+		
 		if rb87frac!=0.0:
 			Rb87atom = AC.Rb87
 			#Hamiltonian(isotope,transition,gL,Bfield)

@@ -1,12 +1,12 @@
 Metadata-Version: 1.1
 Name: ElecSus
-Version: 3.0.0
+Version: 3.0.2
 Summary: (Atomic Physics) Calculate the weak-probe electric susceptibility for alkali-metal vapours
 Home-page: https://github.com/jameskeaveney/ElecSus
 Author: James Keaveney et. al.
 Author-email: james.keaveney@durham.ac.uk
 License: Apache License, Version 2.0
-Description: ElecSus v3.0.0: Extension to Arbitrary magnetic field vectors
+Description: ElecSus v3.0.1: Extension to Arbitrary magnetic field vectors
         ==============
         
         A program to calculate the electric susceptibility of an atomic ensemble. The program is designed to model weak-probe laser spectra on the D-lines of thermal alkali metal vapour cells. The program also includes fitting routines which allow experimental parameters to be extracted from experimental spectroscopic data.
@@ -110,6 +110,17 @@ Description: ElecSus v3.0.0: Extension to Arbitrary magnetic field vectors
         -----------
         Change Log
         -----------
+        
+        V 3.0.2
+        
+        - Minor fix: changed a wx.OPEN to wx.FD_OPEN that affected newer versions of wx FileDialogs not opening properly
+        
+        V 3.0.1
+        
+        - Minor fix: missing square-root in the solve_dielectric.py which was causing errors for the non-analytic magnetic field angles
+        - Updated documentation in solve_dielectric.py
+        - Added a new example to the /tests/ subdirectory for non-uniform magnetic field fitting (to reproduce figure 8 of the new paper)
+        - Minor addition: use proper fine-structure constants for all alkalis, instead of just the value for Rb
         
         V 3.0.0
         
