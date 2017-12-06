@@ -16,6 +16,12 @@
 
 ElecSus GUI
 
+v3.0.3 (2017-12-06)
+	-- Minor fixes to GUI for file input/output not working properly and an error that stopped fitting working
+
+v3.0.2 (2017-11-14)
+	-- Minor fix: changed a wx.OPEN to wx.FD_OPEN that affected newer versions of wx FileDialogs not opening properly
+
 v3.0.1 (2017-09-25)
 	-- Fix missing square-root in solve_dielectric.py
 	-- Implement proper fine-structure constants properly for all alkalis
@@ -2351,7 +2357,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 		""" Call elecsus to fit data. Some sanity checking takes place first. """
 
 		## check for things that will prevent fitting from working, e.g. no data loaded - halt fitting if found
-		if len(self.y_fit_array) > 0:
+		if len(self.y_fit_array) == 0:
 			#warn about no data present
 			dlg = wx.MessageDialog(self, "No experimental data has been loaded, cannot proceed with fitting...", "No no no", wx.OK|wx.ICON_EXCLAMATION)
 			dlg.ShowModal()
@@ -2716,10 +2722,12 @@ class ElecSus_GUI_Frame(wx.Frame):
 		"""
 		#print len(self.y_arrays)
 		#print self.y_arrays		
-			
-		xy_data = zip(self.x_array,self.y_arrays[0],self.y_arrays[1],self.y_arrays[2],self.y_arrays[3],\
-			self.y_arrays[4][0], self.y_arrays[4][1], self.y_arrays[5][0], self.y_arrays[5][1], \
-			self.y_arrays[6][0], self.y_arrays[6][1], self.y_arrays[7][0], self.y_arrays[7][1], self.y_arrays[8])
+					
+		xy_data = zip(self.x_array,self.y_arrays[0].real,self.y_arrays[1].real,self.y_arrays[2].real,self.y_arrays[3].real,\
+			self.y_arrays[4][0].real, self.y_arrays[4][1].real,\
+			self.y_arrays[5][0].real, self.y_arrays[5][1].real, \
+			self.y_arrays[6][0].real, self.y_arrays[6][1].real,\
+			self.y_arrays[7][0].real, self.y_arrays[7][1].real, self.y_arrays[7][2].real)
 		success = write_CSV(xy_data, filename, titles=['Detuning']+OutputTypes)
 		if not success:
 			problem_dlg = wx.MessageDialog(self, "There was an error saving the data...", "Error saving", wx.OK|wx.ICON_ERROR)
