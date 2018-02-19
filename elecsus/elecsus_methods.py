@@ -34,11 +34,10 @@ from shutil import copyfile
 from numpy import arange, zeros, array, sqrt
 
 # import elecsus modules
-from libs import spectra
-
-from libs import MLFittingRoutine as ML
-from libs import SAFittingRoutine as SA
-from libs import RRFittingRoutine as RR
+from .libs import spectra
+from .libs import MLFittingRoutine as ML
+from .libs import SAFittingRoutine as SA
+from .libs import RRFittingRoutine as RR
 
 if os.name == 'posix':
 	from time import time as timing #Timing for linux or apple

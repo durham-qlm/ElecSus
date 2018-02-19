@@ -1,5 +1,6 @@
 LICENSE.txt
 MANIFEST.in
+README.md
 setup.py
 ElecSus.egg-info/PKG-INFO
 ElecSus.egg-info/SOURCES.txt
@@ -10,6 +11,7 @@ elecsus/__init__.py
 elecsus/elecsus_gui.py
 elecsus/elecsus_methods.py
 elecsus/docs/ElecSus GUI User Guide.pdf
+elecsus/images/elecsus-logo.PNG
 elecsus/images/elecsus-logo.png
 elecsus/images/elecsus_t_group.ico
 elecsus/images/jqc-logo.png
@@ -42,4 +44,3 @@ elecsus/tests/fit_fieldgradient.py
 elecsus/tests/fitting_tests.py
 elecsus/tests/rotondaro_tests.py
 elecsus/tests/spectroscopy_tests.py
-elecsus/tests/version_equivalence.py

@@ -112,7 +112,6 @@ from __future__ import (division, print_function, absolute_import)
 __version__ = '3.0.4'
 
 
-
 #!/usr/bin/env python
 import matplotlib
 matplotlib.use('WxAgg')
@@ -172,12 +171,12 @@ FitCompleteEvent, EVT_FIT_COMPLETE = wx.lib.newevent.NewEvent()
 import threading
 
 # import elecsus modules
-import elecsus_methods as elecsus
-from libs import NOTICE
-from libs import data_proc
-from libs.durhamcolours import *
-from libs.durhamcolours import cols as durhamcols
-from libs import polarisation_animation_mpl as pol_ani
+from .elecsus_methods import calculate, fit_data
+from .libs import NOTICE
+from .libs import data_proc
+from .libs.durhamcolours import *
+from .libs.durhamcolours import cols as durhamcols
+from .libs import polarisation_animation_mpl as pol_ani
 
 # fitting
 try:
@@ -197,7 +196,7 @@ rc('lines', linewidth=2)
 rc('axes', color_cycle=durhamcols)
 
 # preamble.py includes tooltip text, default values, labels...
-from libs.preamble import *
+from .libs.preamble import *
 
 def show_versions():
 	""" Shows installed version numbers """
@@ -419,7 +418,7 @@ class FittingThread(threading.Thread):
 		else:
 			dt = mainwin.fit_datatype
 			
-		mainwin.opt_params, mainwin.rms, mainwin.fit_result = elecsus.fit_data((x_array*1e3,y_array),\
+		mainwin.opt_params, mainwin.rms, mainwin.fit_result = fit_data((x_array*1e3,y_array),\
 								mainwin.params_dict, \
 								mainwin.params_dict_bools, p_dict_bounds = mainwin.params_dict_bounds,\
 								data_type = dt, fit_algorithm = fa) #,\
@@ -2002,7 +2001,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 			print('Calling ElecSus for single calculation with parameters:')
 			print(self.params_dict)
 			
-			spectrum_data = elecsus.calculate(self.x_array*1e3,E_vec,self.params_dict,
+			spectrum_data = calculate(self.x_array*1e3,E_vec,self.params_dict,
 									outputs = ['S0','S1','S2','S3','Ix','Iy','I_P45', 'I_M45', 'Ir', 'Il', 'alphaPlus', 'alphaMinus', 'alphaZ'])
 			self.y_arrays[0:4] = spectrum_data[0:4] #S0,S1,S2,S3
 			self.y_arrays[4] = [spectrum_data[4],spectrum_data[5]] # Ix,Iy
@@ -2440,7 +2439,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 		self.y_optimised = self.fit_result.best_fit
 		#E_in_opt = [self.opt_params['Ex'],[self.opt_params['Ey'],self.opt_params['Phase']]]
 		E_in_opt = np.array([self.opt_params['E_x'],self.opt_params['E_y']*np.exp(1.j*self.opt_params['E_phase']),0])
-		spectrum_data = elecsus.calculate(self.x_array*1e3,E_in_opt,self.opt_params, 
+		spectrum_data = calculate(self.x_array*1e3,E_in_opt,self.opt_params, 
 					outputs = ['S0','S1','S2','S3','Ix','Iy','I_P45', 'I_M45', 'Ir', 'Il', 'alphaPlus', 'alphaMinus', 'alphaZ'] )
 					
 		self.y_arrays[0:4] = spectrum_data[0:4] #S0,S1,S2,S3

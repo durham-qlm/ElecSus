@@ -26,12 +26,9 @@ import numpy as np
 import time
 import sys
 
-sys.path.append('../')
-from elecsus_methods import calculate as get_spectra
-sys.path.append('../libs')
-from durhamcolours import *
+from elecsus.elecsus_methods import calculate as get_spectra
+from elecsus.libs.durhamcolours import *
 #from elecsus.libs.spectra import get_spectra
-
 
 def test_Siddons():
 	""" 
@@ -201,6 +198,7 @@ def test_Keaveney():
 	plt.show()
 
 if __name__ == '__main__':
+	print('Running Spectroscopy Test Cases...')
 	test_Siddons()
 	test_Weller()
 	test_Zentile()
