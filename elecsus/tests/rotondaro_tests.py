@@ -12,7 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-""" A series of plots to test ElecSus for the parameters specified in the Rotondaro JOSA B 2015 paper """
+""" 
+A series of plots to test ElecSus for the parameters specified in the Rotondaro JOSA B 2015 paper 
+
+Last updated 2018-02-19 JK
+"""
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
+
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -36,7 +43,7 @@ def test1():
 	st = time.clock()
 	TF = get_spectra(d,[1,0,0],p_dict,outputs=['Iy'])
 	et = time.clock() - st
-	print 'E-field - Elapsed time (s):', et
+	print(('E-field - Elapsed time (s):', et))
 
 	'''
 	#check vs old elecsus
@@ -108,7 +115,7 @@ def test3():
 	Arbitrary Filter - non-optimised
 	"""
 	
-	print 'This takes a while to compute - be patient!'
+	print('This takes a while to compute - be patient!')
 	
 	d = np.linspace(-15000,15000,300)
 	p_dict = {'Bfield':500,'rb85frac':1,'Btheta':87*np.pi/180,'Bphi':00*np.pi/180,'lcell':75e-3,'T':100,'Dline':'D2','Elem':'Cs'}
@@ -148,7 +155,7 @@ def test4():
 	Arbitrary Filter - optimised
 	"""
 	
-	print 'This takes a while to compute - be patient!'
+	print('This takes a while to compute - be patient!')
 	
 	d = np.linspace(-15000,15000,300)
 	#Voigt

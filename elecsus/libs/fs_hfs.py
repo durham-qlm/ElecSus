@@ -20,11 +20,15 @@ Provides functions to calulate the three matrices needed from
 equations (6), (7) and (8) in the manual.
 
 Called by EigenSystem
+
+Last updated 2018-02-19 JK
 """
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
 
 from numpy import identity,dot
 from scipy.linalg import kron
-from ang_mom import jx,jy,jz
+from .ang_mom import jx,jy,jz
 
 def Hfs(L,S,I):
     """Provides the L dot S matrix (fine structure)"""
@@ -123,7 +127,7 @@ def Bbhfs(L,S,I):
     IdotJ2=dot(IdotJ,IdotJ)
 
     if I != 0:
-		Bbhfs=1./(6*I*(2*I-1))*(3*IdotJ2+3./2*IdotJ-I*(I+1)*15./4*Fi)
+        Bbhfs=1./(6*I*(2*I-1))*(3*IdotJ2+3./2*IdotJ-I*(I+1)*15./4*Fi)
     else:
         Bbhfs = 0
     return Bbhfs

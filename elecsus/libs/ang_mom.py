@@ -19,10 +19,14 @@ Calculates and returns the angular momentum matrices
 for x, y and z projections.
 
 Jz called by fs_hfs.py and sz_lsi.py
+
+Last updated 2018-02-19 JK
 """
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
 
 from numpy import transpose,dot
-import ang_mom_p
+from . import ang_mom_p
 
 def jx(jj):
     jp=ang_mom_p.jp(jj)

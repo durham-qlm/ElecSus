@@ -3,7 +3,11 @@ Example code to fit a magnetic field gradient (figure 8 of 2017 ElecSus paper)
 This script will reproduce the entirety of figure 8, including the fitting to data and figure layout
 
 JK, 2017
+
+Last updated 2018-02-19 JK
 """
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,7 +15,7 @@ import time
 import sys
 import copy
 import lmfit as lm
-import cPickle as pickle
+import pickle as pickle
 
 # update matplotlib fonts etc
 plt.rc('font',**{'family':'Serif','serif':['Times New Roman']})
@@ -135,7 +139,7 @@ def fieldgrad_fitfn(x, sep, offset_adj, temperature, n_segments=25,return_S1=Fal
 	"""
 	
 	# so we can see what the fit is doing...
-	print sep, offset_adj, temperature
+	print((sep, offset_adj, temperature))
 	
 	sep *= 1e-3 				# convert to m from mm
 	offset_adj *= 1e-3	# convert to m from mm
@@ -176,7 +180,7 @@ def fieldgrad_fitfn(x, sep, offset_adj, temperature, n_segments=25,return_S1=Fal
 	
 	# Evolve electric field over each segment
 	for i in range(n_segments):
-		if verbose: print 'Cell segment ', i+1, '/', n_segments
+		if verbose: print(('Cell segment ', i+1, '/', n_segments))
 		
 		# average magnetic field in the segment
 		p_dict['Bfield'] = seg_fields[i] * 1e4 # convert to Gauss from Tesla
@@ -227,7 +231,7 @@ def test_fitfn():
 		
 		plt.plot(d_expt, S0_expt, '.')
 	except:
-		print 'Cannot find test data file... '
+		print('Cannot find test data file... ')
 	
 	plt.xlabel('Detuning (GHz)')
 	plt.ylabel('Transmission, S0')
@@ -304,7 +308,7 @@ def field_gradient_fit(fit=True):
 		# run the fit
 		result = model.fit(y, x=x, params=params, method=method)
 		
-		print result.fit_report()
+		print((result.fit_report()))
 		S0_thy = result.best_fit
 		# make quick residual plot to look for any remaining structure
 		result.plot_residuals()
@@ -344,8 +348,8 @@ def field_gradient_fit(fit=True):
 	# Compare against single pass with average magnetic field - i.e. no gradient
 	p_dict = {'rb85frac':72.17,'Btheta':0,'Bphi':0,'lcell':LCELL,'T':temperature,'Dline':'D2','Elem':'Rb'}
 	p_dict['Bfield'] = B_avg
-	print 'Average field,', B_avg
-	print 'Min / Max field across cell: ', Bf2.min()*1e4, Bf2.max()*1e4
+	print(('Average field,', B_avg))
+	print(('Min / Max field across cell: ', Bf2.min()*1e4, Bf2.max()*1e4))
 	
 	# calculate specra with average field
 	pol_in = 1./np.sqrt(2) * np.array([1,1,0])
@@ -433,12 +437,12 @@ def gradient_convergenceTest():
 	detuning = np.linspace(-10,10,1000)
 	
 	S0_arrays = []
-	N_segs = range(N_segs_max,2,-1)
+	N_segs = list(range(N_segs_max,2,-1))
 	rms_vals = np.zeros(len(N_segs))
 	
 	# Calculate spectra
 	for ii,n_segments in enumerate(N_segs):
-		print 'NUMBER OF SEGMENTS:', ii, n_segments
+		print(('NUMBER OF SEGMENTS:', ii, n_segments))
 		S0_arrays.append(fieldgrad_fitfn(detuning, sep, offset_adj, temperature, n_segments))
 				
 	S0_maxSegs = S0_arrays[-1]

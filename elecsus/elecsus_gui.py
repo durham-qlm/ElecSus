@@ -16,6 +16,9 @@
 
 ElecSus GUI
 
+v3.0.4 (2018-02-19
+	-- Support for python 3.x added (maintains compatibility with python 2.7)
+	
 v3.0.3 (2017-12-06)
 	-- Minor fixes to GUI for file input/output not working properly and an error that stopped fitting working
 
@@ -79,7 +82,8 @@ Requirements:
 	tested on:
 	Windows 8.1, Windows 10
 		python 2.7 - 64-bit
-		wxpython 2.8, wxpython 3.0
+		python 3.6 - 64-bit
+		wxpython 2.8, wxpython 3.0, wxpython 4.0
 		matplotlib 1.4.3, 1.5.1
 		numpy 1.9.2
 		scipy 0.15.1, 0.16.1
@@ -98,9 +102,16 @@ Requirements:
 LICENSE info: APACHE version 2
 
 James Keaveney and co-authors
-2017
+2017/8
 """
-__version__ = '3.0.3'
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
+
+
+
+__version__ = '3.0.4'
+
+
 
 #!/usr/bin/env python
 import matplotlib
@@ -112,7 +123,7 @@ import os
 import sys
 import csv
 import time
-import cPickle as pickle
+import pickle as pickle
 
 import numpy as np
 import scipy as sp
@@ -129,15 +140,15 @@ elecsus_dir = os.path.dirname(__file__)
 try:
 	import wx
 except ImportError:
-	print 'wx cannot be imported'
-	print "wxPython >=2.8 needs to be installed for this program to work! \n\
-It is not currently possible to install this automatically through pip/easy_install.\n"
+	print("wxPython cannot be imported")
+	print("wxPython >=2.8 needs to be installed for this program to work! \n\
+	It is not currently possible to install this automatically through pip/easy_install.\n")
 	if os.name == 'posix':
-		print "For Ubuntu/Debian, wxPython is not supported in Enthought Canopy.\n\
-Instead, use the system python distribution (/usr/bin/python) and install through apt:\n\n\
->    (sudo) apt-get install python-wxgtk2.8 python-wxtools wx2.8-i18n libwxgtk2.8-dev libgtk2.0-dev"
+		print("For Ubuntu/Debian, wxPython is not supported in Enthought Canopy.\n\
+		Instead, use the system python distribution (/usr/bin/python) and install through apt:\n\n\
+		>   (sudo) apt-get install python-wxgtk2.8 python-wxtools wx2.8-i18n libwxgtk2.8-dev libgtk2.0-dev")
 	else:
-		print 'For Windows, recommended install is using Enthought Canopy'
+		print("For Windows, recommended install is using Enthought Canopy")
 	raise ImportError
 
 #EXPERIMENTAL - advanced user interface
@@ -172,7 +183,7 @@ from libs import polarisation_animation_mpl as pol_ani
 try:
 	import lmfit as lm
 except:
-	print 'WARNING - LMfit could not be imported -fitting experimental data will not work!'
+	print('WARNING - LMfit could not be imported -fitting experimental data will not work!')
 
 #replace default matplotlib text and color sequence with durham colours
 from matplotlib import rc
@@ -190,16 +201,15 @@ from libs.preamble import *
 
 def show_versions():
 	""" Shows installed version numbers """
-	print 'Packages required for GUI: (this displays currently installed version numbers)'
-	print '\tElecSus: ', __version__
-	print '\tWxPython: ', wx.__version__
-	print '\tNumpy: ', np.__version__
-	print '\tMatplotlib: ', mpl.__version__
-	print 'Required for fitting (in addition to above):'
-	print '\tScipy: ', sp.__version__
-	print '\tMultiprocessing: ', mproc.__version__
-	print '\tPSUtil: ', psutil.__version__
-	print '\tLMfit: ', lm.__version__
+	print('Packages required for GUI: (this displays currently installed version numbers)')
+	print('\tElecSus: ', __version__)
+	print('\tWxPython: ', wx.__version__)
+	print('\tNumpy: ', np.__version__)
+	print('\tMatplotlib: ', mpl.__version__)
+	print('Required for fitting (in addition to above):')
+	print('\tScipy: ', sp.__version__)
+	print('\tPSUtil: ', psutil.__version__)
+	print('\tLMfit: ', lm.__version__)
 		
 class PlotSelectionPopUp(wx.PopupTransientWindow):
 	""" Popup box to handle which plots are displayed. """
@@ -267,7 +277,7 @@ class PlotSelectionPopUp(wx.PopupTransientWindow):
 			for item in items:
 				self.mainwin.display_theory_curves[item] = True
 				self.mainwin.showTplotsSubMenu.GetMenuItems()[item].Check(True)
-			print self.mainwin.display_theory_curves
+			print(self.mainwin.display_theory_curves)
 		elif self.plottype == 'Fit':
 			items = self.selection.GetChecked()
 			self.mainwin.display_expt_curves = [False]*9
@@ -276,7 +286,7 @@ class PlotSelectionPopUp(wx.PopupTransientWindow):
 			for item in items:
 				self.mainwin.display_expt_curves[item] = True
 				self.mainwin.showEplotsSubMenu.GetMenuItems()[item].Check(True)
-			print self.mainwin.display_expt_curves
+			print(self.mainwin.display_expt_curves)
 
 		self.mainwin.OnCreateAxes(self.mainwin.figs[0],self.mainwin.canvases[0])
 
@@ -329,7 +339,7 @@ class PlotSelectionDialog(wx.Dialog):
 		Gets the tick box values, updates the main plot and changes 
 		the menu items to match the popup box
 		"""
-		print 'Ticked Event'
+		print('Ticked Event')
 		
 		if self.plottype == 'Theory':
 			items = self.selection.GetChecked()
@@ -339,7 +349,7 @@ class PlotSelectionDialog(wx.Dialog):
 			for item in items:
 				self.mainwin.display_theory_curves[item] = True
 				#self.mainwin.showTplotsSubMenu.GetMenuItems()[item].Check(True)
-			print self.mainwin.display_theory_curves
+			print(self.mainwin.display_theory_curves)
 		elif self.plottype == 'Fit':
 			items = self.selection.GetChecked()
 			self.mainwin.display_expt_curves = [False]*9
@@ -348,7 +358,7 @@ class PlotSelectionDialog(wx.Dialog):
 			for item in items:
 				self.mainwin.display_expt_curves[item] = True
 				#self.mainwin.showEplotsSubMenu.GetMenuItems()[item].Check(True)
-			print self.mainwin.display_expt_curves
+			print(self.mainwin.display_expt_curves)
 
 		self.mainwin.OnCreateAxes(self.mainwin.figs[0],self.mainwin.canvases[0])
 		
@@ -390,7 +400,7 @@ class FittingThread(threading.Thread):
 			
 			fb, xfa, yfa = None, None, None
 		
-		print 'Fitting data in the detuning range (GHz):  ',x_array[0], ' to ',x_array[-1]
+		print('Fitting data in the detuning range (GHz):  ',x_array[0], ' to ',x_array[-1])
 		mainwin.FitInformation.write('Fitting in the detuning range (GHz):  '+str(x_array[0])+' to '+str(x_array[-1]))
 		mainwin.FitInformation.write('\n\n')
 
@@ -400,7 +410,7 @@ class FittingThread(threading.Thread):
 		elif mainwin.fit_algorithm == 'Simulated Annealing': fa = 'SA'
 		elif mainwin.fit_algorithm == 'Differential Evolution': fa = 'DE'
 		else:
-			print "!! Fitting error - fit algorithm not defined"
+			print("!! Fitting error - fit algorithm not defined")
 			raise
 		
 		# rename data_type if S0:
@@ -437,7 +447,7 @@ class ProgressThread(threading.Thread):
 				#wx.CallAfter(self.pb.SetValue,i)
 				wx.CallAfter(self.pb.Update,i)
 				time.sleep(0.1)
-		print 'Quitting progress bar update'
+		print('Quitting progress bar update')
 	
 class OptionsPanel(scrolled.ScrolledPanel):
 	def __init__(self, parent, mainwin, size, paneltype):
@@ -1052,7 +1062,7 @@ class StatusPanel(scrolled.ScrolledPanel):
 		if SaveFileDialog.ShowModal() == wx.ID_OK:
 			
 			output_filename = SaveFileDialog.GetPath()
-			print output_filename
+			print(output_filename)
 			#if output_filename[-4:] == exts[SaveFileDialog.GetFilterIndex()]:
 			#	output_filename = output_filename[:-4]
 			SaveFileDialog.Destroy()
@@ -1096,7 +1106,7 @@ class DataProcessingDlg(wx.Dialog):
 		self.original_xdata = parent.x_fit_array
 		self.original_ydata = parent.y_expt_arrays
 
-		print 'Length before binning: ', len(self.parent.x_fit_array)
+		print('Length before binning: ', len(self.parent.x_fit_array))
 		
 		panel_blurb = wx.StaticText(self,wx.ID_ANY,"Data smoothing and binning options.",size=(350,-1),style=wx.ALIGN_CENTRE_HORIZONTAL)
 		panel_blurb.Wrap(350)
@@ -1216,7 +1226,7 @@ class DataProcessingDlg(wx.Dialog):
 		## only bin/smooth the most recently loaded data set
 		self.parent.x_fit_array,self.parent.y_fit_array,ye = data_proc.bin_data(self.parent.x_fit_array,self.parent.y_fit_array,bin_amnt)
 		
-		print 'Length ater binning: ', len(self.parent.x_fit_array)
+		print('Length ater binning: ', len(self.parent.x_fit_array))
 
 		#re-plot data
 		self.update_plot()
@@ -1939,7 +1949,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 		# get Efield vector
 		self.params_dict['E_phase'] *= np.pi/180
 		E_vec = np.array([self.params_dict['E_x'],self.params_dict['E_y']*np.exp(1.j*self.params_dict['E_phase']),0])
-		print self.params_dict
+		print(self.params_dict)
 		
 		
 		if calc_or_fit=='Fit':
@@ -1968,7 +1978,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 			## POLARISATION FIT OPTIONS TO ADD
 			
 			if self.FitOptions.fit_polarisation_checkbox.IsChecked():
-				print 'Fitting Polarisation...'
+				print('Fitting Polarisation...')
 				
 				self.params_dict_bools['E_x'] = True
 				self.params_dict_bools['E_y'] = True
@@ -1977,20 +1987,20 @@ class ElecSus_GUI_Frame(wx.Frame):
 				self.params_dict_bounds['E_y'] = [-1.,1.]
 
 				if not self.FitOptions.constrain_linear_checkbox.IsChecked():
-					print 'Fitting Pol. Phase...'
+					print('Fitting Pol. Phase...')
 					self.params_dict_bools['E_phase'] = True
 				#	self.params_dict_bounds['E_phase'] = (0.,np.pi)
 				else:
 					self.params_dict_bools['E_phase'] = False
 				
-			print self.params_dict_bools
+			print(self.params_dict_bools)
 			
 			
 		if calc_or_fit == 'Theory':
-			print '\n\n'
-			print time.ctime()
-			print 'Calling ElecSus for single calculation with parameters:'
-			print self.params_dict
+			print('\n\n')
+			print(time.ctime())
+			print('Calling ElecSus for single calculation with parameters:')
+			print(self.params_dict)
 			
 			spectrum_data = elecsus.calculate(self.x_array*1e3,E_vec,self.params_dict,
 									outputs = ['S0','S1','S2','S3','Ix','Iy','I_P45', 'I_M45', 'Ir', 'Il', 'alphaPlus', 'alphaMinus', 'alphaZ'])
@@ -2014,18 +2024,18 @@ class ElecSus_GUI_Frame(wx.Frame):
 			if not self.already_fitting:
 				
 				#Verbose output
-				print '\n\n'
-				print time.ctime()
-				print 'Calling ElecSus for fitting data with initial parameters:'
+				print('\n\n')
+				print(time.ctime())
+				print('Calling ElecSus for fitting data with initial parameters:')
 				for key in self.params_dict:
-					print key, self.params_dict[key]
-				print '\nVarying the following parameters:'
+					print(key, self.params_dict[key])
+				print('\nVarying the following parameters:')
 				for key in self.params_dict_bools:
-					print key
-				print '\nSubject to the following boundaries:'
+					print(key)
+				print('\nSubject to the following boundaries:')
 				for key in self.params_dict_bounds:
 					val = self.params_dict_bounds[key]
-					print key, val[0], 'to ', val[1] 
+					print(key, val[0], 'to ', val[1]) 
 				
 				
 				## log time, data set to be fitted, initial parameters on the 'Fit Info' notebook:
@@ -2087,7 +2097,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 			elif order==2:
 				tp.SetValue(fp.GetValue())
 				
-		print 'Parameters Copied'
+		print('Parameters Copied')
 			
 	def GetCurrentAxesLimits(self,fig):
 		""" Get current axes limits (doesn't return, but updates self.<> variables"""
@@ -2124,7 +2134,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 		# Show() rather than ShowModal() - doesn't halt program flow
 		if dlg.ShowModal() == wx.ID_OK:
 			self.advanced_fitoptions = dlg.return_all_options()
-			print self.advanced_fitoptions
+			print(self.advanced_fitoptions)
 
 	def OnAutoscale(self,event):
 		""" Set axes auto-scaling """
@@ -2234,9 +2244,9 @@ class ElecSus_GUI_Frame(wx.Frame):
 		
 		fig.clf()
 		
-		print 'Debugging...'
-		print self.fit_datatype
-		print self.y_optimised
+		print('Debugging...')
+		print(self.fit_datatype)
+		print(self.y_optimised)
 		
 		#normalised_residuals = False
 		if self.normalised_residuals:
@@ -2268,7 +2278,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 		ax_main.set_ylabel(self.expt_type)
 		
 		ax_main.plot(self.x_fit_array,self.y_fit_array,color=d_olive)
-		print len(self.x_fit_array), len(self.y_optimised)
+		print(len(self.x_fit_array), len(self.y_optimised))
 		ax_main.plot(self.x_fit_array,self.y_optimised)
 		ax_residual.plot(self.x_fit_array,residuals,lw=1.25)
 		ax_residual.axhline(0,color='k',linestyle='dashed')
@@ -2391,9 +2401,9 @@ class ElecSus_GUI_Frame(wx.Frame):
 		if self.fit_algorithm=='Differential Evolution':
 			# status of checkboxes for floated params must equal checkboxes ticked for bounds
 			ticked_bools = [i for i, box in enumerate(self.FitOptions.main_paramlist_bools+self.FitOptions.magnet_paramlist_bools) if box.IsChecked()]
-			print ticked_bools
+			print(ticked_bools)
 			ticked_bounds = [i for i, box in enumerate(self.FitOptions.main_paramlist_usebounds+self.FitOptions.magnet_paramlist_usebounds) if box.IsChecked()]
-			print ticked_bounds
+			print(ticked_bounds)
 			
 			if ticked_bools != ticked_bounds:
 				dlg = wx.MessageDialog(self,"Bounds on fit parameters must be specified to use Differential Evolution algorithm","Bounds not specified",style=wx.OK|wx.CENTRE|wx.ICON_ERROR)
@@ -2422,10 +2432,10 @@ class ElecSus_GUI_Frame(wx.Frame):
 		# Add RMS info to the Fitting text box
 				
 		# use fitted parameters to calculate new theory arrays
-		print '\n\n'
-		print time.ctime()
-		print 'Calling ElecSus for single calculation with optimised parameters'
-		print self.opt_params
+		print('\n\n')
+		print(time.ctime())
+		print('Calling ElecSus for single calculation with optimised parameters')
+		print(self.opt_params)
 
 		self.y_optimised = self.fit_result.best_fit
 		#E_in_opt = [self.opt_params['Ex'],[self.opt_params['Ey'],self.opt_params['Phase']]]
@@ -2453,7 +2463,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 
 		# update the figure
 		self.OnCreateAxes(self.figs[0],self.canvases[0])			
-		print 'Updating main plot...'
+		print('Updating main plot...')
 		
 		# ask whether to update the initial fitting parameters
 		
@@ -2502,13 +2512,13 @@ class ElecSus_GUI_Frame(wx.Frame):
 	def OnFitTypeChangePanel(self,event):
 		""" Action to perform when fit type is changed """
 		#print self.fittypeSubMenu.GetMenuItems()
-		print ''
+		print('')
 		for panelitem in self.FitOptions.fit_types:
 			if panelitem.GetValue():
 				self.fit_algorithm = panelitem.GetLabel()
 				#self.fittypeSubMenu.Check(idfit,True)
 				#self.OnFitTypeChangeMenu(1)
-				print 'Fit Algorithm changed to:', self.fit_algorithm
+				print('Fit Algorithm changed to:', self.fit_algorithm)
 
 			#self.fittypeSubMenu.Check(idfit,False)
 			#print menuitem.IsChecked()
@@ -2631,7 +2641,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 			output_filename = SaveFileDialog.GetPath()
 			SaveFileDialog.Destroy()
 			
-			print output_filename
+			print(output_filename)
 			
 			# don't need this - FD_OVERWRITE_PROMPT does the same job
 			#check for overwrite current files
@@ -2723,11 +2733,11 @@ class ElecSus_GUI_Frame(wx.Frame):
 		#print len(self.y_arrays)
 		#print self.y_arrays		
 					
-		xy_data = zip(self.x_array,self.y_arrays[0].real,self.y_arrays[1].real,self.y_arrays[2].real,self.y_arrays[3].real,\
+		xy_data = list(zip(self.x_array,self.y_arrays[0].real,self.y_arrays[1].real,self.y_arrays[2].real,self.y_arrays[3].real,\
 			self.y_arrays[4][0].real, self.y_arrays[4][1].real,\
 			self.y_arrays[5][0].real, self.y_arrays[5][1].real, \
 			self.y_arrays[6][0].real, self.y_arrays[6][1].real,\
-			self.y_arrays[7][0].real, self.y_arrays[7][1].real, self.y_arrays[7][2].real)
+			self.y_arrays[7][0].real, self.y_arrays[7][1].real, self.y_arrays[7][2].real))
 		success = write_CSV(xy_data, filename, titles=['Detuning']+OutputTypes)
 		if not success:
 			problem_dlg = wx.MessageDialog(self, "There was an error saving the data...", "Error saving", wx.OK|wx.ICON_ERROR)
@@ -2792,7 +2802,7 @@ def write_CSV(xy,filename,titles=None):
 ## Run the thing...
 def start():
 	""" Start the GUI """
-	print 'Starting ElecSus GUI...'
+	print('Starting ElecSus GUI...')
 	global app
 	app = wx.App(redirect=False)
 	frame = ElecSus_GUI_Frame(None,"ElecSus GUI - General Magneto Optics")
@@ -2802,7 +2812,7 @@ def start():
 	frame.Centre()
 	frame.Show()
 	app.MainLoop()
-	print '...Closed ElecSus GUI'
+	print('...Closed ElecSus GUI')
 
 if __name__ == '__main__':
 	""" Called when program started with 'python elecsus_gui.py' from the command line """

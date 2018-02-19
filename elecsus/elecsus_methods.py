@@ -20,7 +20,11 @@ Note: This is incompatible with the old way of running elecsus, using the runcar
 
 Usage, and examples, are detailed in each method separately
 
+Last updated 2018-02-19 JK
 """
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
+
 
 import os
 import sys
@@ -32,9 +36,9 @@ from numpy import arange, zeros, array, sqrt
 # import elecsus modules
 from libs import spectra
 
-import libs.MLFittingRoutine as ML
-import libs.SAFittingRoutine as SA
-import libs.RRFittingRoutine as RR
+from libs import MLFittingRoutine as ML
+from libs import SAFittingRoutine as SA
+from libs import RRFittingRoutine as RR
 
 if os.name == 'posix':
 	from time import time as timing #Timing for linux or apple
@@ -151,7 +155,7 @@ def fit_data(data,p_dict,p_dict_bools,E_in=None,p_dict_bounds=None,data_type='S0
 	for key in p_dict_bools:
 		if p_dict_bools[key]: nparameters += 1
 
-	if verbose: print 'Starting parameter dictionary:\n', p_dict
+	if verbose: print('Starting parameter dictionary:\n', p_dict)
 	
 	if E_in is None:
 		try:
@@ -162,19 +166,19 @@ def fit_data(data,p_dict,p_dict_bools,E_in=None,p_dict_bounds=None,data_type='S0
 	
 	# Call different fitting routines        
 	if fit_algorithm in ('ML', 'Marquardt-Levenberg', 'LM', 'leastsq'):
-		print '\nPerfoming Marquardt-Levenberg fitting routine.'
+		print('\nPerfoming Marquardt-Levenberg fitting routine.')
 		optParams, result = ML.ML_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=p_dict_bounds,data_type=data_type)
-		print 'ML Fit completed'
+		print('ML Fit completed')
 	elif fit_algorithm == 'SA':
-		print '\nPerforming fitting by simulated annealing.'
+		print('\nPerforming fitting by simulated annealing.')
 		nevaluations = 2**(8+2*nparameters)
 		optParams, result = SA.SA_fit(data,E_in,p_dict,p_dict_bools,data_type=data_type,no_evals=nevaluations)
 	elif fit_algorithm in ('DE', 'differential_evolution'):
-		print '\nPerfoming Differential Evolution fitting routine.'
+		print('\nPerfoming Differential Evolution fitting routine.')
 		# Run with differential evolution
 		optParams_DE, result = ML.ML_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=p_dict_bounds,data_type=data_type,method='differential_evolution')
 		# Then to get errors on parameters, run ML fit with optimised parameters
-		print 'DE fitting finished - rounding off with ML fit with optimised parameters...'
+		print('DE fitting finished - rounding off with ML fit with optimised parameters...')
 		try:
 			for key in ['Elem', 'Dline', 'Constrain']:
 				optParams_DE[key] = p_dict[key]
@@ -183,7 +187,7 @@ def fit_data(data,p_dict,p_dict_bools,E_in=None,p_dict_bounds=None,data_type='S0
 		## then do ML fit on the end to get error bars ...
 		optParams, result = ML.ML_fit(data,E_in,optParams_DE,p_dict_bools,p_dict_bounds=p_dict_bounds,data_type=data_type)
 	else:
-		print '\nPerforming fitting by Random-Restart hill climbing method.'
+		print('\nPerforming fitting by Random-Restart hill climbing method.')
 		#The more parameters to fit, the more evaluations we need to do.
 		nparameters = 0
 		for key in p_dict_bools:
@@ -200,7 +204,7 @@ def fit_data(data,p_dict,p_dict_bools,E_in=None,p_dict_bounds=None,data_type='S0
 	except KeyError:
 		pass
 		
-	if verbose: print result.fit_report()
+	if verbose: print(result.fit_report())
 	
 	Spec = result.best_fit
 	ydata = data[1]

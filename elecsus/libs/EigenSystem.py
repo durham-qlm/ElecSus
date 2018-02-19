@@ -23,7 +23,13 @@ Modules called:
 FundamentalConstants -- fundamental physical constants from CODATA
 AtomConstants        -- All isotope and D-line specific constants
 sz_lsi               -- 
+
+Last updated 2018-02-19 JK
 """
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
+
+
 
 # Calulates the ground state manifold and the excited state manifold.
 # Is called by spectra.py
@@ -31,10 +37,10 @@ sz_lsi               --
 from scipy.linalg import eig, eigh
 from numpy import pi, append, transpose, identity
 
-from AtomConstants import *
-from FundamentalConstants import *
-from sz_lsi import sz, lz, Iz
-from fs_hfs import Hfs,Hhfs,Bbhfs
+from .AtomConstants import *
+from .FundamentalConstants import *
+from .sz_lsi import sz, lz, Iz
+from .fs_hfs import Hfs,Hhfs,Bbhfs
 
 
 class Hamiltonian(object):

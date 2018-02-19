@@ -1,3 +1,11 @@
+"""
+Series of tests and example code to run elecsus via the API
+
+Last updated 2018-02-19 JK
+"""
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
+
 import matplotlib.pyplot as plt
 import numpy as np
 import time
@@ -42,7 +50,7 @@ def test_MLfit():
 	report = result.fit_report()
 	fit = result.best_fit
 	
-	print report
+	print(report)
 	
 	plt.plot(x,y,'k.',label='Data')
 	plt.plot(x,fit,'r-',lw=2,label='Fit')
@@ -89,7 +97,7 @@ def compare_fit_methods():
 	st_ML = time.clock()
 	best_paramsML, RMS_ML, resultML = EM.fit_data(data, p_dict, p_dict_bools, E_in=E_in_angle, data_type='S0')
 	et_ML = time.clock() -st_ML
-	print 'ML complete'
+	print('ML complete')
 	
 	# RR and SA need range over which to search
 	p_dict_bounds['T'] = [30]
@@ -100,13 +108,13 @@ def compare_fit_methods():
 	best_paramsRR, RMS_RR, resultRR = EM.fit_data(data, p_dict, p_dict_bools, E_in=E_in_angle, 
 																					p_dict_bounds=p_dict_bounds, data_type='S0', fit_algorithm='RR')
 	et_RR = time.clock() - st_RR
-	print 'RR complete'
+	print('RR complete')
 
 	st_SA = time.clock()
 	best_paramsSA, RMS_SA, resultSA = EM.fit_data(data, p_dict, p_dict_bools, E_in=E_in_angle, 
 																					p_dict_bounds=p_dict_bounds, data_type='S0', fit_algorithm='SA')
 	et_SA = time.clock() - st_SA
-	print 'SA complete'
+	print('SA complete')
 
 	# differential evolution needs upper and lower bounds on fit parameters
 	p_dict_bounds['T'] = [70,130]
@@ -118,13 +126,13 @@ def compare_fit_methods():
 																					p_dict_bounds=p_dict_bounds, data_type='S0', 
 																					fit_algorithm='differential_evolution')
 	et_DE = time.clock() - st_DE
-	print 'DE complete'
+	print('DE complete')
 
 	
-	print 'ML found best params in ', et_ML, 'seconds. RMS error, ', RMS_ML
-	print 'RR found best params in ', et_RR, 'seconds. RMS error, ', RMS_RR
-	print 'SA found best params in ', et_SA, 'seconds. RMS error, ', RMS_SA
-	print 'DE found best params in ', et_DE, 'seconds. RMS error, ', RMS_DE
+	print(('ML found best params in ', et_ML, 'seconds. RMS error, ', RMS_ML))
+	print(('RR found best params in ', et_RR, 'seconds. RMS error, ', RMS_RR))
+	print(('SA found best params in ', et_SA, 'seconds. RMS error, ', RMS_SA))
+	print(('DE found best params in ', et_DE, 'seconds. RMS error, ', RMS_DE))
 	
 	reportML = resultML.fit_report()
 	fitML = resultML.best_fit

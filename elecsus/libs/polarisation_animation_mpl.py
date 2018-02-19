@@ -3,7 +3,12 @@ Polarisation animation...
 
 the animate_vectors() method creates an interactive 3D plot, visualising the resultant polarisation for a
 given input of Ex, Ey and the phase difference (in radians) between them
+
+Last updated 2018-02-19 JK
 """
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
+
 
 import numpy as np
 import matplotlib.pyplot as plt

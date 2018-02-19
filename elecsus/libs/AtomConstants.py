@@ -20,10 +20,14 @@ nuclear spin g-factors are those corresponding to the Bohr magneton.
 
 Called by EigenSystem.py
 
+Last updated 2018-02-19 JK
 """
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
+
 
 from numpy import pi, sqrt
-from FundamentalConstants import *
+from .FundamentalConstants import *
 
 class IdealAtom:
 	""" Constants for an ideal atom with no hyperfine structure, and only electron spin """
@@ -163,7 +167,16 @@ class IdealD1Transition:
     NatGamma = 6 #Rubidium D1 natural linewidth in MHz
     dipoleStrength = 3.0*sqrt(e0*hbar*(2.0*NatGamma*(10.0**6))*(wavelength**3)/(8.0*pi))
     v0 = 377107407.299e6 #The weighted linecentre of the rubidium D1 line in Hz
-	
+
+
+# transitions dictionary
+transitions = {'RbD1':RbD1Transition, 'RbD2':RbD2Transition,
+						'CsD1':CsD1Transition, 'CsD2':CsD2Transition,
+						'KD1':KD1Transition, 'KD2':KD2Transition,
+						'NaD1':NaD1Transition, 'NaD2':NaD2Transition,
+						'IdealD1':IdealD1Transition
+					}
+					
 # Isotope-Transition constants
 
 class Ideal_D1:

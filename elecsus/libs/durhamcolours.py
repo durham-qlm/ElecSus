@@ -32,8 +32,10 @@ From any python interactive session or script,
 
 will print a plot with all of the colours on, named (requires matplotlib).
 
-JK, 2017
+Last updated 2018-02-19 JK
 """
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
 
 ##
 # Colour numbers									Colour				Code (website)
@@ -62,7 +64,7 @@ def help_dcols():
 	from matplotlib.patches import Rectangle
 	fig, axes = subplots(4,3)
 	i=0
-	print axes
+	print(axes)
 	for axA in axes:
 		for ax in axA:
 			patch = Rectangle([0,0],1,1,color=cols[i])

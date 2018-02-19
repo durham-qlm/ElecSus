@@ -19,10 +19,10 @@ Simulated annealing fitting routine.
 
 Complete rebuild of the original SA fitting module written by Mark A. Zentile, now using lmfit
 
-Author: JK
-2016-10-17
-
+Last updated 2018-02-19 JK
 """
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -31,15 +31,15 @@ import sys
 import copy
 import time
 
-import cPickle as pickle
+import pickle as pickle
 
 import psutil
 from multiprocessing import Pool
 
-import MLFittingRoutine as ML
+from . import MLFittingRoutine as ML
 import lmfit as lm
 
-from spectra import get_spectra
+from .spectra import get_spectra
 
 p_dict_bounds_default = {'lcell':1e-3,'Bfield':100., 'T':20., 
 							'GammaBuf':20., 'shift':100.,
@@ -110,7 +110,7 @@ def SA_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 	if p_dict_bounds is None:
 		p_dict_bounds = p_dict_bounds_default
 	
-	print 'Starting Simulated Annealing Fitting Routine'
+	print('Starting Simulated Annealing Fitting Routine')
 	x = np.array(data[0])
 	y = np.array(data[1])
 
@@ -144,11 +144,11 @@ def SA_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 				p_dict_list[i][key] = start_vals + np.random.uniform(-1,1) * p_dict_bounds[key]
 				
 	if verbose:
-		print 'List of initial parameter dictionaries:'
+		print('List of initial parameter dictionaries:')
 		for pd in p_dict_list:
-			print pd
+			print(pd)
 		#print p_dict_list
-		print '\n\n'
+		print('\n\n')
 	
 	#Do parallel ML fitting by utilising multiple cores
 	po = Pool() # Pool() uses all cores, Pool(3) uses 3 cores for example.
@@ -173,7 +173,7 @@ def SA_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 	current_chi_sq = best_chi_sq
 	current_params = copy.deepcopy(SA_params)
 	
-	print '\n\n Initial parameter space evaluations completed...'
+	print('\n\n Initial parameter space evaluations completed...')
 	
 	# Measure of how much the chi-squared values change over the parameter space
 	spread = np.std(result[:,0])
@@ -218,9 +218,9 @@ def SA_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 				## parameters varied over 10% of range specified before...	
 				trial_params[key] = copy.deepcopy(current_params[key]) + np.random.normal(0,p_dict_bounds[key]) # * p_dict_bounds[key]	#* 0.1
 		
-		print 'Before calculation:'
-		print 'Trial: ', trial_params['T'], trial_params['Bfield']
-		print 'Current: ', current_params['T'], current_params['Bfield']
+		print('Before calculation:')
+		print(('Trial: ', trial_params['T'], trial_params['Bfield']))
+		print(('Current: ', current_params['T'], current_params['Bfield']))
 
 		trial_theory = get_spectra(x,E_in_vector,trial_params,outputs=[data_type])[0].real
 		trial_chi_sq = chisq(data[1],trial_theory)
@@ -236,23 +236,23 @@ def SA_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 		# and convert to probability of acceptance
 		if delta_chi_sq < 1e-5:
 			# if there's no change in chi-squared (i.e. parameter space is locally flat), accept with small (5%) probability
-			print 'WARNING - no change in chi-squared - probably due to plateau in parameter space!'
+			print('WARNING - no change in chi-squared - probably due to plateau in parameter space!')
 			prob = 0.05
 			plateau_escape_chance += 1
 		else:
 			prob = np.exp(-delta_chi_sq/(k*T))
 		
 		if verbose:
-			print '\n\tBest chi-squared so far:', best_chi_sq
-			print '\tBest Parameters so far (T, B): ', best_params['T'], best_params['Bfield']
+			print(('\n\tBest chi-squared so far:', best_chi_sq))
+			print(('\tBest Parameters so far (T, B): ', best_params['T'], best_params['Bfield']))
 
-			print '\tCurrent Parameters (T, B): ', current_params['T'], current_params['Bfield']
-			print '\tTrial Parameters (T, B): ', trial_params['T'], trial_params['Bfield']
-			print '\n\tCurrent chi-squared:', current_chi_sq
-			print '\tTrial chi-squared:', trial_chi_sq
-			print '\tChange in chi-squared from previous:', delta_chi_sq
-			print '\tTemperature parameter: ', T
-			print '\tProbability that new parameters will be accepted (>1 == 1):', prob
+			print(('\tCurrent Parameters (T, B): ', current_params['T'], current_params['Bfield']))
+			print(('\tTrial Parameters (T, B): ', trial_params['T'], trial_params['Bfield']))
+			print(('\n\tCurrent chi-squared:', current_chi_sq))
+			print(('\tTrial chi-squared:', trial_chi_sq))
+			print(('\tChange in chi-squared from previous:', delta_chi_sq))
+			print(('\tTemperature parameter: ', T))
+			print(('\tProbability that new parameters will be accepted (>1 == 1):', prob))
 		
 		if (delta_chi_sq < 0) or (prob > np.random.random()):
 			# accept downhill movement, or uphill movement with probability prob - update chi_squared and parameters
@@ -263,14 +263,14 @@ def SA_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 			T_log.append(trial_params['T'])
 			B_log.append(trial_params['Bfield'])
 
-			print '\t...Values accepted. Current parameters updated.'
-			print '\n'
+			print('\t...Values accepted. Current parameters updated.')
+			print('\n')
 			
 			# reset escape chance
 			uphill_escape_chance = 0
 		else:
-			print '\t...Values rejected. Escape threshold:', uphill_escape_chance, ' / ', uphill_escape_threshold
-			print '\n'
+			print(('\t...Values rejected. Escape threshold:', uphill_escape_chance, ' / ', uphill_escape_threshold))
+			print('\n')
 			uphill_escape_chance += 1
 			
 		
@@ -283,39 +283,39 @@ def SA_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 		
 		# Exit annealing loop if conditions are correct
 		if (uphill_escape_chance > uphill_escape_threshold):
-			print 'Simulated annealing completed ( No improvement found after {:d} iterations)'.format(uphill_escape_threshold)
-			print 'Switching to downhill fit using best found parameters...\n'
+			print(('Simulated annealing completed ( No improvement found after {:d} iterations)'.format(uphill_escape_threshold)))
+			print('Switching to downhill fit using best found parameters...\n')
 			break
 
 		
 		if (T < minimum_T): #No jumps up hill for a while, or minimum temperature reached
-			print 'Simulated annealing completed ( Temperature reached minimum threshold )'
-			print 'Switching to downhill fit using best found parameters...\n'
+			print('Simulated annealing completed ( Temperature reached minimum threshold )')
+			print('Switching to downhill fit using best found parameters...\n')
 			break
 		
 		if (plateau_escape_chance > plateau_escape_threshold):
-			print '!!!\n\tCAUTION :: Annealing has not converged.'
-			print '\tAnnealing algorithm found plateau in parameter space'
-			print '\tSwitching to downhill fit using best found parameters...\n!!!'
+			print('!!!\n\tCAUTION :: Annealing has not converged.')
+			print('\tAnnealing algorithm found plateau in parameter space')
+			print('\tSwitching to downhill fit using best found parameters...\n!!!')
 			break
 
 	#### Marquardt-Levenberg fit #####
 
 	try:
-		print 'Downhill fit with initial parameters: (T,B) ', best_params['T'], best_params['Bfield']
+		print(('Downhill fit with initial parameters: (T,B) ', best_params['T'], best_params['Bfield']))
 		ML_best_params, result = ML.ML_fit(data, E_in, best_params, p_dict_bools, data_type)
 		MLchi_sq = result.chisqr
 		if MLchi_sq <= best_chi_sq:
 			best_params = ML_best_params
 			final_result = result
 			success = True
-			print 'Downhill fit converged successfully.\n'
+			print('Downhill fit converged successfully.\n')
 		else:
-			print 'Downhill fit did not find further improvement. Continuing with simulated annealing result.\n'
+			print('Downhill fit did not find further improvement. Continuing with simulated annealing result.\n')
 			success = False
 			final_result = 1			
 	except:
-		print 'Downhill fit failed to converge. Continuing with simulated annealing result.\n'
+		print('Downhill fit failed to converge. Continuing with simulated annealing result.\n')
 		success = False
 		final_result = 1
 		
@@ -332,7 +332,7 @@ def test_fit(calc=False):
 	E_in = np.array([0.7,0.7,0])
 	E_in_angle = [E_in[0].real,[abs(E_in[1]),np.angle(E_in[1])]]
 	
-	print E_in_angle
+	print(E_in_angle)
 	
 	x = np.linspace(-10000,10000,200)
 	if calc:
@@ -353,7 +353,7 @@ def test_fit(calc=False):
 	
 	if calc:
 		for i,TT in enumerate(Tvals):
-			print i, len(Tvals)
+			print((i, len(Tvals)))
 			for j, BB in enumerate(Bvals):
 				p_dict['T'] = TT
 				p_dict['Bfield'] = BB
@@ -379,7 +379,7 @@ def test_fit(calc=False):
 	fit = result.best_fit
 	
 	fig_data = plt.figure()
-	print report
+	print(report)
 	plt.plot(x,y,'ko')
 	plt.plot(x,fit,'r-',lw=2)
 	
@@ -409,7 +409,7 @@ def test_fit2(calc=False):
 	E_in = np.array([1.0,0.0,0.0])
 	E_in_angle = [E_in[0].real,[abs(E_in[1]),np.angle(E_in[1])]]
 	
-	print E_in_angle
+	print(E_in_angle)
 	
 	x = np.linspace(-7000,8000,200)
 	if calc:
@@ -429,7 +429,7 @@ def test_fit2(calc=False):
 	
 	if calc:
 		for i,TT in enumerate(Tvals):
-			print i, len(Tvals)
+			print((i, len(Tvals)))
 			for j, BB in enumerate(Bvals):
 				p_dict['T'] = TT
 				p_dict['Bfield'] = BB
@@ -458,7 +458,7 @@ def test_fit2(calc=False):
 	fit = result.best_fit
 	
 	fig_data = plt.figure()
-	print report
+	print(report)
 	plt.plot(x,y,'ko')
 	plt.plot(x,fit,'r-',lw=2)
 	
@@ -490,7 +490,7 @@ def test_fit3(calc=False):
 	E_in = np.array([1.0,0.0,0.0])
 	E_in_angle = [E_in[0].real,[abs(E_in[1]),np.angle(E_in[1])]]
 	
-	print E_in_angle
+	print(E_in_angle)
 	
 	x = np.linspace(-13000,-6000,150)
 	if calc:
@@ -513,7 +513,7 @@ def test_fit3(calc=False):
 	
 	if calc:
 		for i,TT in enumerate(Tvals):
-			print i, len(Tvals)
+			print((i, len(Tvals)))
 			for j, BB in enumerate(Bvals):
 				p_dict['T'] = TT
 				p_dict['Bfield'] = BB
@@ -523,8 +523,8 @@ def test_fit3(calc=False):
 	else:
 		T2D, B2D, CSQ_map = pickle.load(open('pickle_CSQmap.pkl','rb'))
 	
-	print T2D
-	print B2D
+	print(T2D)
+	print(B2D)
 	fig_map = plt.figure()
 	ax = plt.subplot2grid((1,14),(0,0),colspan=13)
 	ax_cb = plt.subplot2grid((1,14),(0,13),colspan=1)
@@ -543,7 +543,7 @@ def test_fit3(calc=False):
 	if success:
 		report = result.fit_report()
 		fit = result.best_fit
-		print report
+		print(report)
 	
 	fig_data = plt.figure()
 	plt.plot(x,y,'ko')
@@ -581,7 +581,7 @@ def test_fit4(calc=False):
 	E_in = np.array([1.0,0.0,0.0])
 	E_in_angle = [E_in[0].real,[abs(E_in[1]),np.angle(E_in[1])]]
 	
-	print E_in_angle
+	print(E_in_angle)
 	
 	x = np.linspace(-21000,-13000,150)
 	if calc:
@@ -604,7 +604,7 @@ def test_fit4(calc=False):
 	
 	if calc:
 		for i,TT in enumerate(Tvals):
-			print i, len(Tvals)
+			print((i, len(Tvals)))
 			for j, BB in enumerate(Bvals):
 				p_dict['T'] = TT
 				p_dict['Bfield'] = BB
@@ -614,8 +614,8 @@ def test_fit4(calc=False):
 	else:
 		T2D, B2D, CSQ_map = pickle.load(open('pickle_CSQmap.pkl','rb'))
 	
-	print T2D
-	print B2D
+	print(T2D)
+	print(B2D)
 	fig_map = plt.figure()
 	ax = plt.subplot2grid((1,14),(0,0),colspan=13)
 	ax_cb = plt.subplot2grid((1,14),(0,13),colspan=1)
@@ -637,9 +637,9 @@ def test_fit4(calc=False):
 	if success:
 		report = result.fit_report()
 		fit = result.best_fit
-		print report
+		print(report)
 	else:
-		print best_params
+		print(best_params)
 		fit = get_spectra(x,E_in,best_params,outputs=['S0'])[0].real
 
 	plt.plot(x,fit,'r-',lw=2)

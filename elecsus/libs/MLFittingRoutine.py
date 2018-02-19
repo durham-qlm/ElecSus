@@ -22,17 +22,22 @@ Overhauled October 2016 to use the lmfit module
  to fit only the selected parameters, and include bounds on parameters
  
 Author: JK
-2016-10-14
 
 differential evolution needs lmfit version >= 0.9.3
+
+Last updated 2018-02-19 JK
 """
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
+
+
 
 import matplotlib.pyplot as plt
  
 import numpy as np
 import lmfit as lm
 
-from spectra import get_spectra
+from .spectra import get_spectra
 
 import time
 
@@ -49,7 +54,7 @@ def fit_function(x,E_x,E_y,E_phase,T,lcell,Bfield,Btheta,Bphi,GammaBuf,shift,
 	"""
 	
 	if verbose:
-		print 'Parameters: ', Bfield, T, lcell, E_x, E_y, E_phase, Btheta, Bphi, GammaBuf, shift, DoppTemp, rb85frac
+		print(('Parameters: ', Bfield, T, lcell, E_x, E_y, E_phase, Btheta, Bphi, GammaBuf, shift, DoppTemp, rb85frac))
 	
 	# Ex / Ey separated to allow for fitting polarisation
 	E_in = np.array([E_x,E_y*np.exp(1.j*E_phase),0.])
@@ -111,7 +116,7 @@ def ML_fit(data,E_in,p_dict,p_dict_bools,data_type='S0',p_dict_bounds=None,metho
 	
 	# Non-numeric arguments to pass to fitting function
 	kwargz = {'Elem':p_dict['Elem'],'Dline':p_dict['Dline']}
-	if 'Constrain' in p_dict.keys(): 
+	if 'Constrain' in list(p_dict.keys()): 
 		kwargz['Constrain'] = p_dict['Constrain']
 	else:
 		kwargz['Constrain'] = True
@@ -140,7 +145,7 @@ def ML_fit(data,E_in,p_dict,p_dict_bools,data_type='S0',p_dict_bounds=None,metho
 				params[key].min = p_dict_bounds[key][0]
 				params[key].max = p_dict_bounds[key][1]
 	
-	if verbose: print params
+	if verbose: print(params)
 	
 	result = model.fit(y, x=x, params=params, method=method, **kwargz)
 	

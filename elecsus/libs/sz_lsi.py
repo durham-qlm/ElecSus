@@ -22,11 +22,16 @@ coupled angular momentum F. Essentially takes results from jz and puts
 them in the full Hilbert space.
 
 Calls jz from ang_mom.
+
+Last updated 2018-02-19 JK
 """
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
+
 
 from numpy import identity
 from scipy.linalg import kron
-from ang_mom import jz
+from .ang_mom import jz
 
 def sz(L,S,I):
     Sz=jz(S)

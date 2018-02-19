@@ -12,7 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-""" A series of examples, calculating various spectra for different parameter regimes """
+""" 
+A series of examples, calculating various spectra for different parameter regimes
+
+Last updated 2018-02-19 JK
+"""
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
 
 import matplotlib.pyplot as plt
 import numpy as np

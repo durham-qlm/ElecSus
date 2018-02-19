@@ -18,7 +18,13 @@ Change electric field basis between xyz and +/-/z bases.
 this module provides methods to convert in both directions
 
 JK
+
+Last updated 2018-02-19 JK
 """
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
+
+
 import numpy as np
 
 def xyz_to_lrz(E_in):

@@ -17,7 +17,12 @@
 Loads fundamental constants from scipy
 
 Called by AtomConstants.py and EigenSystem.py
+
+Last updated 2018-02-19 JK
 """
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
+
 
 from numpy import pi, sqrt
 from scipy.constants import physical_constants, epsilon_0, hbar, c, e, h

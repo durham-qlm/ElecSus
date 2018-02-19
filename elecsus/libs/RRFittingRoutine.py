@@ -23,8 +23,11 @@ fit using Marquardt-Levenberg.
 Complete rebuild of the original RR fitting module now using lmfit
 
 Author: JK
-2016-10-17
+Last updated 2018-02-19
 """
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
+
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,10 +38,10 @@ import copy
 import psutil
 from multiprocessing import Pool
 
-import MLFittingRoutine as ML
+from . import MLFittingRoutine as ML
 import lmfit as lm
 
-from spectra import get_spectra
+from .spectra import get_spectra
 
 p_dict_bounds_default = {'lcell':1e-3,'Bfield':100., 'T':20., 
 							'GammaBuf':20., 'shift':100.,
@@ -88,7 +91,7 @@ def RR_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 	if p_dict_bounds is None:
 		p_dict_bounds = p_dict_bounds_default
 
-	print 'Starting Random Restart Fitting Routine'
+	print('Starting Random Restart Fitting Routine')
 	x = np.array(data[0])
 	y = np.array(data[1])
 
@@ -122,11 +125,11 @@ def RR_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 				p_dict_list[i][key] = start_vals + np.random.uniform(-1,1) * p_dict_bounds[key]
 				
 	if verbose:
-		print 'List of initial parameter dictionaries:'
+		print('List of initial parameter dictionaries:')
 		for pd in p_dict_list:
-			print pd
+			print(pd)
 		#print p_dict_list
-		print '\n\n'
+		print('\n\n')
 	
 	#Do parallel ML fitting by utilising multiple cores
 	po = Pool() # Pool() uses all cores, Pool(3) uses 3 cores for example.
@@ -144,7 +147,7 @@ def RR_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 	po.close()
 	po.join()
 	
-	if verbose: print 'RR calculation complete'
+	if verbose: print('RR calculation complete')
 
 	#Find best fit
 	result = np.array(result)
@@ -154,8 +157,8 @@ def RR_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 
 	best_values = result[lineMin][1] # best parameter dictionary
 	if verbose:
-		print '\n\n\n'
-		print best_values
+		print('\n\n\n')
+		print(best_values)
 
 	p_dict_best = copy.deepcopy(p_dict)
 	p_dict_best.update(best_values)
@@ -178,7 +181,7 @@ def test_fit():
 	E_in = np.array([0.7,0.7,0])
 	E_in_angle = [E_in[0].real,[abs(E_in[1]),np.angle(E_in[1])]]
 	
-	print E_in_angle
+	print(E_in_angle)
 	
 	x = np.linspace(-10000,10000,100)
 	[y] = get_spectra(x,E_in,p_dict,outputs=['S1']) + np.random.randn(len(x))*0.015
@@ -189,7 +192,7 @@ def test_fit():
 	report = result.fit_report()
 	fit = result.best_fit
 	
-	print report
+	print(report)
 	plt.plot(x,y,'ko')
 	plt.plot(x,fit,'r-',lw=2)
 	plt.show()

@@ -20,8 +20,11 @@ Taken from Mark Zentile's thesis, 2015
 in x/y basis, x = (1,0), y = (0,1)
 in l/r basis, l = (1,0), r = (0,1)
 
-JK
+Last updated 2018-02-19 JK
 """
+# py 2.7 compatibility
+from __future__ import (division, print_function, absolute_import)
+
 
 import numpy as np
 
