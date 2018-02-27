@@ -1,4 +1,4 @@
-ElecSus v3.0.4: Extension to Arbitrary magnetic field vectors
+ElecSus v3.0.5: Extension to Arbitrary magnetic field vectors
 ==============
 
 A program to calculate the electric susceptibility of an atomic ensemble. The program is designed to model weak-probe laser spectra on the D-lines of thermal alkali metal vapour cells. The program also includes fitting routines which allow experimental parameters to be extracted from experimental spectroscopic data.
@@ -100,6 +100,10 @@ Apache License, Version 2.0. A Copy of the license is provided.
 -----------
 Change Log
 -----------
+
+V 3.0.5
+
+- Bug fix with some menu items not working properly
 
 V 3.0.4 
 

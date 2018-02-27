@@ -1,35 +1,32 @@
 Metadata-Version: 1.1
 Name: ElecSus
-Version: 3.0.4
+Version: 3.0.5
 Summary: (Atomic Physics) Calculate the weak-probe electric susceptibility for alkali-metal vapours
 Home-page: https://github.com/jameskeaveney/ElecSus
 Author: James Keaveney et. al.
 Author-email: james.keaveney@durham.ac.uk
 License: Apache License, Version 2.0
-Description-Content-Type: UNKNOWN
-Description: ElecSus v3.0.4: Extension to Arbitrary magnetic field vectors
+Description: ElecSus v3.0.5: Extension to Arbitrary magnetic field vectors
         ==============
         
         A program to calculate the electric susceptibility of an atomic ensemble. The program is designed to model weak-probe laser spectra on the D-lines of thermal alkali metal vapour cells. The program also includes fitting routines which allow experimental parameters to be extracted from experimental spectroscopic data.
-        
-        An alternate GUI based on the TraitsUI interface has been developed by Matthias Widman and co-authors and is available here: https://github.com/matwid/ElecSus (Note this is for ElecSus v2.2.0)
         
         --------------------
         New in version 3.0
         --------------------
         
-        -	**Major overhaul** that adds much additional functionality. See the new paper (https://arxiv.org/abs/1708.05305) for the full details. In brief, the additions are
+        -	**Major overhaul** that adds much additional functionality. See the new paper (https://doi.org/10.1016/j.cpc.2017.12.001) for the full details. In brief, the additions are
             - To include calculation for an arbitrary angle between magnetic field axis and light propagation vector, 
         	in part based on the publication by Rotondaro, Zhdanov and Knize [ J. Opt. Soc. Am. B 32, 12, 2507 (2015) ] and references therein.
         	
             - A more general approach to light propagation, with the input polarisation more rigorously defined. 
-        	*This change makes this version	backwards incompatible with the previous (v1.x.x, v2.x.x) versions*, since now we explicitly calculate the electric field at the exit of the medium and use Jones matrices/vectors to compute the Stokes parameters and other derived quantities. This also has the benefit of enabling the simulation of, for example: magnetic field gradients; polarising optical elements; birefringence or other optical imperfections.
+        	*This change makes this version backwards incompatible with the previous (v1.x, v2.x) versions*, since now we explicitly calculate the electric field at the exit of the medium and use Jones matrices/vectors to compute the Stokes parameters and other derived quantities. This also has the benefit of enabling the simulation of, for example: magnetic field gradients; polarising optical elements; birefringence or other optical imperfections. Previous versions are still available on the releases section of these pages, but are no longer maintained.
         
             - The GUI has been significantly changed to accomodate the extra magnetic field and polarisation options.
         
-            - The old runcard method of calling elecsus is now dead and buried, since it's no longer compatible with the current version.
+            - The old (v1.x) runcard method of calling elecsus is now dead and buried, since it's no longer compatible with the current version.
         
-            - The fitting routines have been completely rewritten to use parameter dictionaries. We now utilise the lmfit module (https://lmfit.github.io/lmfit-py/), instead of the vanilla scipy least-square minimisation modules. Performance is broadly similar (since lmfit also runs over the top of scipy.optimize modules, but there are many advantages of this model: Firstly, all parameters can now be selected to vary during a fit or be held constant, and bounds for these parameters can be given to prevent unphysical values from being returned. In addition, the differential_evolution solver is now availablle, which is very efficient at finding the global minimum for multi-parameter fits (we leave in random_restart and simulated_annealing for now, though these might disappear in future versions as it appears differential_evolution is much better in all tested cases so far - see elecsus/tests/fitting_tests.py for examples).
+            - The fitting routines have been completely rewritten to use parameter dictionaries. We now utilise the lmfit module (https://lmfit.github.io/lmfit-py/), instead of the vanilla scipy least-square minimisation modules. Performance is broadly similar (since lmfit also runs over the top of scipy.optimize modules), but there are many advantages of this model: Firstly, all parameters can now be selected to vary during a fit or be held constant, and bounds for these parameters can be given to prevent unphysical values from being returned. In addition, the differential_evolution solver is now availablle, which is very efficient at finding the global minimum for multi-parameter fits (we leave in random_restart and simulated_annealing for now, though these might disappear in future versions as it appears differential_evolution is much better in all tested cases so far - see elecsus/tests/fitting_tests.py for examples).
         		
         -------------
         Prerequisites
@@ -94,12 +91,12 @@ Description: ElecSus v3.0.4: Extension to Arbitrary magnetic field vectors
         Manual
         ------
         
-        For GUI documentation, see docs/ElecSus_GUI_UserGuide.pdf
+        For GUI documentation, see the docs/ sub-folder.
         
         For the original ElecSus paper, go to http://dx.doi.org/10.1016/j.cpc.2014.11.023
-        and download the paper. It is published open-access and therefore freely available.
-        
-        For the ElecSus paper that goes with version 3.0.0, see the pre-print at https://arxiv.org/abs/1708.05305.
+        and download the paper.
+        For the ElecSus paper that goes with version 3, see https://doi.org/10.1016/j.cpc.2017.12.001
+        Both papers are published open-access and therefore freely available.
         
         -------
         License
@@ -112,7 +109,12 @@ Description: ElecSus v3.0.4: Extension to Arbitrary magnetic field vectors
         Change Log
         -----------
         
+        V 3.0.5
+        
+        - Bug fix with some menu items not working properly
+        
         V 3.0.4 
+        
         - Support for python 3.x added (maintains compatibility with python 2.7)
         	
         V 3.0.3
@@ -155,6 +157,7 @@ Description: ElecSus v3.0.4: Extension to Arbitrary magnetic field vectors
         - Corrected some incorrect tooltips
         - Added show_versions() method to elecsus_gui.py, which shows the currently used version numbers of 
         	modules important to running this program
+        - An alternate GUI based on the TraitsUI interface has been developed by Matthias Widman and co-authors and is available here: https://github.com/matwid/ElecSus (Note this is based on ElecSus v2.2.0)
         		
         V 2.1.0
         

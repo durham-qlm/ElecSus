@@ -31,7 +31,7 @@ setup(
 	author='James Keaveney et. al.',
 	author_email='james.keaveney@durham.ac.uk',
 	url='https://github.com/jameskeaveney/ElecSus',
-	version='3.0.4',
+	version='3.0.5',
 	packages=['elecsus', 'elecsus.libs', 'elecsus.tests'],
 	package_data={'elecsus':['images/elecsus_group.ico',
 							'images/elecsus_t_group.ico',

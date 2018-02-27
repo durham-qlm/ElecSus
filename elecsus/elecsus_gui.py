@@ -16,7 +16,10 @@
 
 ElecSus GUI
 
-v3.0.4 (2018-02-19
+v3.0.5 (2018-02-27)
+	--	 Bug fix with some menu items not working properly
+	
+v3.0.4 (2018-02-19)
 	-- Support for python 3.x added (maintains compatibility with python 2.7)
 	
 v3.0.3 (2017-12-06)
@@ -109,7 +112,7 @@ from __future__ import (division, print_function, absolute_import)
 
 
 
-__version__ = '3.0.4'
+__version__ = '3.0.5'
 
 
 #!/usr/bin/env python
@@ -2137,7 +2140,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 
 	def OnAutoscale(self,event):
 		""" Set axes auto-scaling """
-		self.Autoscale = bool(event.Checked())
+		self.Autoscale = bool(event.IsChecked())
 
 	def OnComputeButton(self,event):
 		""" Call elecsus to compute spectrum """
@@ -2527,18 +2530,18 @@ class ElecSus_GUI_Frame(wx.Frame):
 		Warn about bad fitting practices - e.g. when there are many data points to fit, or many
 		fit parameters where the fit algorithm could be improved.
 		"""
-		self.warnings = bool(event.Checked())
+		self.warnings = bool(event.IsChecked())
 
 	def OnGridToggleMain(self,event):
 		""" Toggle axes grid on main plot """
 		for ax in self.figs[0].axes:
-			ax.grid(bool(event.Checked()))
+			ax.grid(bool(event.IsChecked()))
 		self._draw_fig(self.figs[0],self.canvases[0])
 					
 	def OnGridToggleRes(self,event):
 		""" Toggle axes grid on residuals plot """
 		for ax in self.figs[1].axes:
-			ax.grid(bool(event.Checked()))
+			ax.grid(bool(event.IsChecked()))
 		self._draw_fig(self.figs[1],self.canvases[1])
 
 	def OnLivePlotting(self,event):
@@ -2548,7 +2551,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 		
 		This method binds or unbinds a call to the compute button each time a control is changed.
 		"""
-		LivePlotOn = bool(event.Checked())
+		LivePlotOn = bool(event.IsChecked())
 		
 		if LivePlotOn:
 			for ctrl in self.ThyOptions.all_floatspin_inputs:
@@ -2584,18 +2587,18 @@ class ElecSus_GUI_Frame(wx.Frame):
 		Toggle plot hold (keep data on updating figure) on/off
 		Allows multiple data sets to be shown on same plot
 		"""
-		#self.PlotHold = bool(event.Checked())
+		#self.PlotHold = bool(event.IsChecked())
 		#self.figs[0].hold(self.PlotHold)
 		dlg = wx.MessageDialog(self, "Not implemented yet...", "No no no", wx.OK)
 		dlg.ShowModal()
 			
 	def OnPlotLegend(self,event):
 		""" Toggle plot legend on/off """
-		self.legendOn = bool(event.Checked())
+		self.legendOn = bool(event.IsChecked())
 	
 	def OnResHist(self,event):
 		""" Turn histogram of residuals on/off """
-		self.residual_histogram = bool(event.Checked())
+		self.residual_histogram = bool(event.IsChecked())
 		self.OnCreateResidualPlot(self.figs[1],self.canvases[1])
 							
 	def OnSaveConfig(self,event):
@@ -2716,7 +2719,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 		""" Action when Menu Item 'Use Experimental Detuning' is clicked """
 		if self.x_fit_array is not None:
 			# only do anything if data has been loaded already
-			self.UseExpDetuning = bool(event.Checked())
+			self.UseExpDetuning = bool(event.IsChecked())
 			self.OnComputeButton(1)
 		else:
 			problem_dlg = wx.MessageDialog(self, "No experimental data has been loaded yet", "No data to use", wx.OK|wx.ICON_ERROR)
