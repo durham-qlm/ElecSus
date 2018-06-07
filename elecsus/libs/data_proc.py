@@ -27,7 +27,7 @@ def bin_data(x,y,blength):
 	""" Takes 2 arrays x and y and bins them into groups of blength. """
 	if blength % 2 == 0: 
 		blength -= 1
-	nobins = len(x)/blength
+	nobins = int(len(x)/blength)
 	xmid = (blength-1)/2
 	xbinmax = nobins*blength - xmid
 	a=0

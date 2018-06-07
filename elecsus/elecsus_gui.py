@@ -16,6 +16,10 @@
 
 ElecSus GUI
 
+v3.0.6 (2018-04-12)
+	--	Bug in the data processing module (libs/data_proc.py) fixed
+	-- Minor change to color cycler to support new version of matplotlib (v2.2)
+	
 v3.0.5 (2018-02-27)
 	--	 Bug fix with some menu items not working properly
 	
@@ -31,7 +35,6 @@ v3.0.2 (2017-11-14)
 v3.0.1 (2017-09-25)
 	-- Fix missing square-root in solve_dielectric.py
 	-- Implement proper fine-structure constants properly for all alkalis
-	
 	
 v3.0.0 (2017-08-18)
 	-- MAJOR OVERHAUL to add many new program features and streamline a lot of others. This, unfortunately but necessarily, makes version 3 incompatible with previous versions. The changes are detailed below. The phyics are discussed in the new paper, a pre-print can be found at https://arxiv.org/abs/1708.05305
@@ -112,7 +115,7 @@ from __future__ import (division, print_function, absolute_import)
 
 
 
-__version__ = '3.0.5'
+__version__ = '3.0.6'
 
 
 #!/usr/bin/env python
@@ -196,7 +199,8 @@ plt.rcParams.update(params)
 rc('text', usetex=False)
 rc('font',**{'family':'serif', 'size':14})
 rc('lines', linewidth=2)
-rc('axes', color_cycle=durhamcols)
+from cycler import cycler
+rc('axes', prop_cycle=(cycler('color', durhamcols)))
 
 # preamble.py includes tooltip text, default values, labels...
 from .libs.preamble import *
