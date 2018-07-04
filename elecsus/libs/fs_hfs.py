@@ -21,14 +21,14 @@ equations (6), (7) and (8) in the manual.
 
 Called by EigenSystem
 
-Last updated 2018-02-19 JK
+Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
 
 from numpy import identity,dot
 from scipy.linalg import kron
-from .ang_mom import jx,jy,jz
+from ang_mom import jx,jy,jz
 
 def Hfs(L,S,I):
     """Provides the L dot S matrix (fine structure)"""

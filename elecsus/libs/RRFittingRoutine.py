@@ -23,7 +23,7 @@ fit using Marquardt-Levenberg.
 Complete rebuild of the original RR fitting module now using lmfit
 
 Author: JK
-Last updated 2018-02-19
+Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
@@ -38,10 +38,10 @@ import copy
 import psutil
 from multiprocessing import Pool
 
-from . import MLFittingRoutine as ML
+import MLFittingRoutine as ML
 import lmfit as lm
 
-from .spectra import get_spectra
+from spectra import get_spectra
 
 p_dict_bounds_default = {'lcell':1e-3,'Bfield':100., 'T':20., 
 							'GammaBuf':20., 'shift':100.,
@@ -171,7 +171,7 @@ def RR_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 	return best_values, final_result
 
 def test_fit():
-	p_dict = {'elem':'Rb','Dline':'D2','T':80.,'lcell':2e-3,'Bfield':600.,'Btheta':0.,
+	p_dict = {'Elem':'Rb','Dline':'D2','T':80.,'lcell':2e-3,'Bfield':600.,'Btheta':0.,
 		'Bphi':0.,'GammaBuf':0.,'shift':0.}
 	
 	# only need to specify parameters that are varied

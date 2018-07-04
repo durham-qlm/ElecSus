@@ -19,7 +19,7 @@ Module containing functions to calculate the spectra
 Constructs the electric susceptibility and then returns
 the spectrum requested
 
-Last updated 2018-02-19 JK
+Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
@@ -28,15 +28,23 @@ from numpy import zeros,sqrt,pi,dot,exp,sin,cos,array,amax,arange,concatenate,ar
 import numpy as np
 from scipy.special import wofz
 from scipy.interpolate import interp1d
-from .FundamentalConstants import *
-from .numberDensityEqs import *
 
-from . import EigenSystem as ES
-from . import AtomConstants as AC
-from . import RotationMatrices as RM
-from . import BasisChanger as BC
-from . import JonesMatrices as JM
-from . import solve_dielectric as SD
+import os
+import sys
+import inspect
+cmd_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]))
+if cmd_folder not in sys.path:
+    sys.path.insert(0, cmd_folder)
+
+from FundamentalConstants import *
+from numberDensityEqs import *
+
+import EigenSystem as ES
+import AtomConstants as AC
+import RotationMatrices as RM
+import BasisChanger as BC
+import JonesMatrices as JM
+import solve_dielectric as SD
 
 # direct testing
 import matplotlib.pyplot as plt

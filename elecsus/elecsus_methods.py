@@ -20,7 +20,7 @@ Note: This is incompatible with the old way of running elecsus, using the runcar
 
 Usage, and examples, are detailed in each method separately
 
-Last updated 2018-02-19 JK
+Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
@@ -34,10 +34,16 @@ from shutil import copyfile
 from numpy import arange, zeros, array, sqrt
 
 # import elecsus modules
-from .libs import spectra
-from .libs import MLFittingRoutine as ML
-from .libs import SAFittingRoutine as SA
-from .libs import RRFittingRoutine as RR
+cmd_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]))
+if cmd_folder not in sys.path:
+    sys.path.insert(0, cmd_folder)
+cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0],"libs")))
+if cmd_subfolder not in sys.path:
+    sys.path.insert(0, cmd_subfolder)
+from libs import spectra
+from libs import MLFittingRoutine as ML
+from libs import SAFittingRoutine as SA
+from libs import RRFittingRoutine as RR
 
 if os.name == 'posix':
 	from time import time as timing #Timing for linux or apple
