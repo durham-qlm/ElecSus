@@ -19,7 +19,7 @@ Module containing functions to calculate the spectra
 Constructs the electric susceptibility and then returns
 the spectrum requested
 
-Last updated 2018-07-04 MAZ
+Last updated 2018-07-12 MAZ
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
@@ -726,24 +726,29 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 	
 	E_xz = np.reshape(E_xz.T, (len(X),3,1))
 	
-	E_out_xz = np.zeros((len(X),3,1),dtype='complex')
-	E_out = np.zeros_like(E_out_xz)
-	for i in range(len(X)):
-		#print 'Propagation Matrix:\n',PropMat.T[i]
-		#print 'Rotation matrix:\n',RM_ary.T[i]
-		#inverse rotation matrix
-		RMI_ary = np.matrix(RM_ary.T[i].T).I
-		#print 'Inverse rotation matrix:\n',RMI_ary
+	# E_out_xz = np.zeros((len(X),3,1),dtype='complex')
+	# E_out = np.zeros_like(E_out_xz)
+	# for i in range(len(X)):
+	# 	#print 'Propagation Matrix:\n',PropMat.T[i]
+	# 	#print 'Rotation matrix:\n',RM_ary.T[i]
+	# 	#inverse rotation matrix
+	# 	RMI_ary = np.matrix(RM_ary.T[i].T).I
+	# 	#print 'Inverse rotation matrix:\n',RMI_ary
 		
-		E_out_xz[i] = RMI_ary * np.matrix(PropMat.T[i]) * np.matrix(RM_ary.T[i].T)*np.matrix(E_xz[i]) 
-		#print 'E out xz i: ',E_out_xz[i].T
-		E_out[i] = RM.rotate_around_z(E_out_xz[i].T[0],-Bphi)
-	
+	# 	E_out_xz[i] = RMI_ary * np.matrix(PropMat.T[i]) * np.matrix(RM_ary.T[i].T)*np.matrix(E_xz[i]) 
+	# 	#print 'E out xz i: ',E_out_xz[i].T
+	# 	E_out[i] = RM.rotate_around_z(E_out_xz[i].T[0],-Bphi)
+
+	ary_of_RMI_ary = np.linalg.inv(np.transpose(RM_ary.T,(0,2,1))) #Gives full array of RMI matrices
+	fast_E_out_xz = ary_of_RMI_ary @ PropMat.T @ np.transpose(RM_ary.T,(0,2,1)) @ E_xz
+	fast_E_out = RM.rotate_around_z2(np.transpose(fast_E_out_xz,(0,2,1))[::,0],-Bphi) 
+
 	#print 'E out [0]: ',E_out[0]
 	#print 'E out shape: ',E_out.shape
 	
 	## return electric field vector - can then use Jones matrices to do everything else
-	return E_out.T[0], np.matrix(RM_ary.T[i])
+	#return E_out.T[0], np.matrix(RM_ary.T[i])
+	return fast_E_out.T[0], np.matrix(RM_ary.T[-1])
 
 def get_spectra(X, E_in, p_dict, outputs=None):
 	""" 
@@ -860,6 +865,8 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 		X = np.array([X])
 	else:
 		X = np.array(X)
+
+
 	
 	# Calculate E_field
 	E_out, R = get_Efield(X, E_in, Chi, p_dict)
@@ -949,7 +956,6 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 				'E_out':E_out, 
 				'Chi':Chi, 'ChiPlus':ChiPlus, 'ChiMinus':ChiMinus, 'ChiZ':ChiZ
 			}
-			
 	
 	if (outputs == None) or ('All' in outputs):
 		# Default - return 'all' outputs (as used by GUI)
