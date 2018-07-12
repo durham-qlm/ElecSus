@@ -23,7 +23,7 @@ fit using Marquardt-Levenberg.
 Complete rebuild of the original RR fitting module now using lmfit
 
 Author: JK
-Last updated 2018-07-04 MAZ
+Last updated 2018-07-12 MAZ
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
@@ -153,7 +153,7 @@ def RR_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 	result = np.array(result)
 	#print result
 	#result = result.astype(np.float64)
-	lineMin = np.argmin(result, axis=0)[0] ## pick the fit with the lowest cost value
+	lineMin = np.argmin(result[:,0]) ## pick the fit with the lowest cost value
 
 	best_values = result[lineMin][1] # best parameter dictionary
 	if verbose:
