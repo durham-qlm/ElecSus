@@ -1,2 +1,3 @@
-# ignore python compiled files
+# ignore python compiled files & windows thumbnail files
 *.pyc
+Thumbs.db

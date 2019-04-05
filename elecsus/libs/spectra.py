@@ -24,7 +24,7 @@ Last updated 2018-07-12 MAZ
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
 
-from numpy import zeros,sqrt,pi,dot,exp,sin,cos,array,amax,arange,concatenate,argmin
+from numpy import zeros,sqrt,pi,dot,exp,sin,cos,array,amax,arange,concatenate,argmin,matmul
 import numpy as np
 from scipy.special import wofz
 from scipy.interpolate import interp1d
@@ -740,7 +740,7 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 	# 	E_out[i] = RM.rotate_around_z(E_out_xz[i].T[0],-Bphi)
 
 	ary_of_RMI_ary = np.linalg.inv(np.transpose(RM_ary.T,(0,2,1))) #Gives full array of RMI matrices
-	fast_E_out_xz = ary_of_RMI_ary @ PropMat.T @ np.transpose(RM_ary.T,(0,2,1)) @ E_xz
+	fast_E_out_xz = matmul(matmul(matmul(ary_of_RMI_ary,PropMat.T),np.transpose(RM_ary.T,(0,2,1))),E_xz)
 	fast_E_out = RM.rotate_around_z2(np.transpose(fast_E_out_xz,(0,2,1))[::,0],-Bphi) 
 
 	#print 'E out [0]: ',E_out[0]

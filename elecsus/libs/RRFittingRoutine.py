@@ -1,4 +1,4 @@
-# Copyright 2014 M. A. Zentile, J. Keaveney, L. Weller, D. Whiting,
+# Copyright 2014-2019 M. A. Zentile, J. Keaveney, L. Weller, D. Whiting,
 # C. S. Adams and I. G. Hughes.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@ fit using Marquardt-Levenberg.
 Complete rebuild of the original RR fitting module now using lmfit
 
 Author: JK
-Last updated 2018-07-12 MAZ
+Last updated 2018-02-21 MAZ
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
@@ -107,7 +107,7 @@ def RR_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 	
 	# default number of iterations based on number of fit parameters
 	if no_evals == None:
-		no_evals = 2**(3+2*nFitParams)
+		no_evals = nFitParams**2 + 5 # 2**(3+2*nFitParams)
 		
 	# Create random array of starting parameters based on parameter ranges given in p_dict range dictionary
 	# Scattered uniformly over the parameter space
@@ -135,10 +135,10 @@ def RR_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 	po = Pool() # Pool() uses all cores, Pool(3) uses 3 cores for example.
 	
 	## use lower process priority so computer is still responsive while calculating!!
-	parent = psutil.Process()
-	parent.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
-	for child in parent.children():
-		child.nice(psutil.IDLE_PRIORITY_CLASS)
+	# parent = psutil.Process()
+	# parent.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+	# for child in parent.children():
+	# 	child.nice(psutil.IDLE_PRIORITY_CLASS)
 	
 	args_list = [(data, E_in, p_dict_list[k], p_dict_bools, data_type) for k in range(no_evals)]
 	
