@@ -16,9 +16,13 @@
 
 ElecSus GUI
 
-v3.0.6a (2019-04-05)
-	-- fixed bug to allow data saving in python 3.
+v3.0.7 (2019-10-22)
+	-- Large speed improvement for electric field calculations.
+	-- Fixed bug to allow data saving in python 3.
+	-- Bug with relative paths fixed.
 	-- Reduced number of initial points in RR fitting routine.
+	-- Fixed compatibility issue with matplotlib versions > 3.
+	-- Fixed the fitting test modules
 
 v3.0.6 (2018-04-12)
 	--	Bug in the data processing module (libs/data_proc.py) fixed
@@ -117,10 +121,7 @@ Mark Zentile, James Keaveney and co-authors
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
 
-
-
-__version__ = '3.0.6'
-
+__version__ = '3.0.7'
 
 #!/usr/bin/env python
 import matplotlib
@@ -181,12 +182,12 @@ FitCompleteEvent, EVT_FIT_COMPLETE = wx.lib.newevent.NewEvent()
 import threading
 
 # import elecsus modules
-from elecsus_methods import calculate, fit_data
-from libs import NOTICE
-from libs import data_proc
-from libs.durhamcolours import *
-from libs.durhamcolours import cols as durhamcols
-from libs import polarisation_animation_mpl as pol_ani
+from elecsus.elecsus_methods import calculate, fit_data
+from elecsus.libs import NOTICE
+from elecsus.libs import data_proc
+from elecsus.libs.durhamcolours import *
+from elecsus.libs.durhamcolours import cols as durhamcols
+from elecsus.libs import polarisation_animation_mpl as pol_ani
 
 # fitting
 try:
@@ -1025,7 +1026,7 @@ class PlotToolPanel(wx.Panel):
 
 		# display some text in the middle of the window to begin with
 		self.fig.text(0.5,0.5,'ElecSus GUI\n\nVersion '+__version__+'\n\nTo get started, use the panel on the right\nto either Compute a spectrum or Import some data...', ha='center',va='center')
-		self.fig.hold(False)
+		#self.fig.hold(False)
 		
 		self.SetSizer(plot_sizer)
 		#self.Layout() #Fit()
