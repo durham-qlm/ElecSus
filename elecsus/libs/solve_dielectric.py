@@ -19,7 +19,7 @@ Use analytic solutions for the 'easy' geometries - Faraday (B-field aligned with
 Use sympy to calculate solutions for all other non-trivial geometries.
 Since the solutions for the non-trivial geometries depend on the susceptibility, array operations don't completely work, so it's *much* slower to calculate
 
-Last updated 2018-02-19 JK
+Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
@@ -36,7 +36,7 @@ import scipy
 
 import time
 
-from .FundamentalConstants import e0
+from FundamentalConstants import e0
 
 def solve_diel(chiL, chiR, chiZ, THETA, Bfield, verbose=False,force_numeric=False):
 	''' 

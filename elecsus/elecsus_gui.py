@@ -16,6 +16,14 @@
 
 ElecSus GUI
 
+v3.0.7 (2019-10-22)
+	-- Large speed improvement for electric field calculations.
+	-- Fixed bug to allow data saving in python 3.
+	-- Bug with relative paths fixed.
+	-- Reduced number of initial points in RR fitting routine.
+	-- Fixed compatibility issue with matplotlib versions > 3.
+	-- Fixed the fitting test modules
+
 v3.0.6 (2018-04-12)
 	--	Bug in the data processing module (libs/data_proc.py) fixed
 	-- Minor change to color cycler to support new version of matplotlib (v2.2)
@@ -107,16 +115,13 @@ Requirements:
 	
 LICENSE info: APACHE version 2
 
-James Keaveney and co-authors
-2017/8
+Mark Zentile, James Keaveney and co-authors
+2017/8/9
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
 
-
-
-__version__ = '3.0.6'
-
+__version__ = '3.0.7'
 
 #!/usr/bin/env python
 import matplotlib
@@ -177,12 +182,12 @@ FitCompleteEvent, EVT_FIT_COMPLETE = wx.lib.newevent.NewEvent()
 import threading
 
 # import elecsus modules
-from .elecsus_methods import calculate, fit_data
-from .libs import NOTICE
-from .libs import data_proc
-from .libs.durhamcolours import *
-from .libs.durhamcolours import cols as durhamcols
-from .libs import polarisation_animation_mpl as pol_ani
+from elecsus.elecsus_methods import calculate, fit_data
+from elecsus.libs import NOTICE
+from elecsus.libs import data_proc
+from elecsus.libs.durhamcolours import *
+from elecsus.libs.durhamcolours import cols as durhamcols
+from elecsus.libs import polarisation_animation_mpl as pol_ani
 
 # fitting
 try:
@@ -203,7 +208,7 @@ from cycler import cycler
 rc('axes', prop_cycle=(cycler('color', durhamcols)))
 
 # preamble.py includes tooltip text, default values, labels...
-from .libs.preamble import *
+from libs.preamble import *
 
 def show_versions():
 	""" Shows installed version numbers """
@@ -1021,7 +1026,7 @@ class PlotToolPanel(wx.Panel):
 
 		# display some text in the middle of the window to begin with
 		self.fig.text(0.5,0.5,'ElecSus GUI\n\nVersion '+__version__+'\n\nTo get started, use the panel on the right\nto either Compute a spectrum or Import some data...', ha='center',va='center')
-		self.fig.hold(False)
+		#self.fig.hold(False)
 		
 		self.SetSizer(plot_sizer)
 		#self.Layout() #Fit()
@@ -2744,6 +2749,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 			self.y_arrays[5][0].real, self.y_arrays[5][1].real, \
 			self.y_arrays[6][0].real, self.y_arrays[6][1].real,\
 			self.y_arrays[7][0].real, self.y_arrays[7][1].real, self.y_arrays[7][2].real))
+		print('Here fine1')
 		success = write_CSV(xy_data, filename, titles=['Detuning']+OutputTypes)
 		if not success:
 			problem_dlg = wx.MessageDialog(self, "There was an error saving the data...", "Error saving", wx.OK|wx.ICON_ERROR)
@@ -2792,9 +2798,12 @@ def write_CSV(xy,filename,titles=None):
 		
 		The optional titles writes a single header row at the top of the csv file.
 	"""	
-	
 	try:
-		with open(filename, 'wb') as csvfile:
+		if sys.version_info[0] < 3:
+			wfile = open(filename, 'wb')
+		else:
+			wfile = open(filename, 'w', newline='')
+		with wfile as csvfile:
 			csv_writer = csv.writer(csvfile,delimiter=',')
 			if titles is not None:
 				csv_writer.writerow(titles)
@@ -2804,7 +2813,6 @@ def write_CSV(xy,filename,titles=None):
 	except:
 		return False
 	
-	
 ## Run the thing...
 def start():
 	""" Start the GUI """
@@ -2813,7 +2821,6 @@ def start():
 	app = wx.App(redirect=False)
 	frame = ElecSus_GUI_Frame(None,"ElecSus GUI - General Magneto Optics")
 				
-
 	frame.SetSize((1600,900))
 	frame.Centre()
 	frame.Show()

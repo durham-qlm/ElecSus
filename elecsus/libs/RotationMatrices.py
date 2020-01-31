@@ -15,7 +15,7 @@
 """
 Rotation matrices for rotating cartesian coordinate systems around a particular axis
 
-Last updated 2018-02-19 JK
+Last updated 2018-07-12 MAZ
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
@@ -89,6 +89,22 @@ def rotate_around_z(input_vec,phi):
 	
 	#print np.dot(R1,np.matrix(input_vec_col))
 	return np.array(R1 * np.matrix(input_vec_col))
+
+def rotate_around_z2(input_vec,phi):
+	"""
+	Rotate 3d vector around the 3rd dimension, counter-clockwise
+	"""
+	#This function adds to rotate_around_z the capability to act on a stacked array of vectors.
+	#print 'input shape: ',input_vec[0].shape
+	
+	# input_vec is given as an array n of row vectors, eg. n x [Ex,Ey,Ez] - translate to array of n column vectors n x [[Ex],[Ey],[Ez]]
+	input_vec_col = np.transpose(np.array([input_vec]),(1,2,0)) # note - need the extra []'s around input_vec!
+	
+	# rotation around the z-axis (rotation in the xy plane)
+	R1 = np.array([[cos(phi),-sin(phi),0],[sin(phi),cos(phi),0],[0,0,1]])
+	
+	#print np.dot(R1,np.matrix(input_vec_col))
+	return np.array(R1 @ input_vec_col) #Return rotated vectors as a stacked array
 		
 def test_forward_rotn():	
 	""" Testing ... """

@@ -25,7 +25,7 @@ Author: JK
 
 differential evolution needs lmfit version >= 0.9.3
 
-Last updated 2018-02-19 JK
+Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
@@ -37,7 +37,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import lmfit as lm
 
-from .spectra import get_spectra
+from spectra import get_spectra
 
 import time
 
