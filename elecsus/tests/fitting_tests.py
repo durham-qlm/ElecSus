@@ -94,9 +94,9 @@ def compare_fit_methods():
 	p_dict_bounds = {}
 		
 	# time it...
-	st_ML = time.clock()
+	st_ML = time.time()
 	best_paramsML, RMS_ML, resultML = EM.fit_data(data, p_dict, p_dict_bools, E_in=E_in_angle, data_type='S0')
-	et_ML = time.clock() -st_ML
+	et_ML = time.time() -st_ML
 	print('ML complete')
 	
 	# RR and SA need range over which to search
@@ -104,16 +104,16 @@ def compare_fit_methods():
 	p_dict_bounds['Bfield'] = [3000]
 	p_dict_bounds['GammaBuf'] = [150]
 
-	st_RR = time.clock()
+	st_RR = time.time()
 	best_paramsRR, RMS_RR, resultRR = EM.fit_data(data, p_dict, p_dict_bools, E_in=E_in_angle, 
 																					p_dict_bounds=p_dict_bounds, data_type='S0', fit_algorithm='RR')
-	et_RR = time.clock() - st_RR
+	et_RR = time.time() - st_RR
 	print('RR complete')
 
-	st_SA = time.clock()
+	st_SA = time.time()
 	best_paramsSA, RMS_SA, resultSA = EM.fit_data(data, p_dict, p_dict_bools, E_in=E_in_angle, 
 																					p_dict_bounds=p_dict_bounds, data_type='S0', fit_algorithm='SA')
-	et_SA = time.clock() - st_SA
+	et_SA = time.time() - st_SA
 	print('SA complete')
 
 	# differential evolution needs upper and lower bounds on fit parameters
@@ -121,11 +121,11 @@ def compare_fit_methods():
 	p_dict_bounds['Bfield'] = [4000,8000]
 	p_dict_bounds['GammaBuf'] = [0, 100]
 	
-	st_DE = time.clock()
+	st_DE = time.time()
 	best_paramsDE, RMS_DE, resultDE = EM.fit_data(data, p_dict, p_dict_bools, E_in=E_in_angle, 
 																					p_dict_bounds=p_dict_bounds, data_type='S0', 
 																					fit_algorithm='differential_evolution')
-	et_DE = time.clock() - st_DE
+	et_DE = time.time() - st_DE
 	print('DE complete')
 
 	

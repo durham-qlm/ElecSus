@@ -40,17 +40,17 @@ def test1():
 	p_dict = {'Bfield':300,'rb85frac':1,'Btheta':0,'lcell':75e-3,'T':58,'Dline':'D2','Elem':'Cs'}
 	
 	#timing:
-	st = time.clock()
+	st = time.time()
 	TF = get_spectra(d,[1,0,0],p_dict,outputs=['Iy'])
-	et = time.clock() - st
+	et = time.time() - st
 	print(('E-field - Elapsed time (s):', et))
 
 	'''
 	#check vs old elecsus
 	from elecsus_v2.libs import spectra as old_spec
-	st = time.clock()
+	st = time.time()
 	TF_old = old_spec.get_spectra(d,p_dict,outputs=['Iy'])
-	et = time.clock() - st
+	et = time.time() - st
 	print 'Old elecsus - Elapsed time (s):', et
 	'''
 	
