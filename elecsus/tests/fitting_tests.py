@@ -1,7 +1,7 @@
 """
 Series of tests and example code to run elecsus via the API
 
-Last updated 2018-02-19 JK
+Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
@@ -160,4 +160,4 @@ def compare_fit_methods():
 	
 
 if __name__ == '__main__':
-	test_fit2()
+	compare_fit_methods()

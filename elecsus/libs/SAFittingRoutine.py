@@ -19,7 +19,7 @@ Simulated annealing fitting routine.
 
 Complete rebuild of the original SA fitting module written by Mark A. Zentile, now using lmfit
 
-Last updated 2018-02-19 JK
+Last updated 2018-07-12 MAZ
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
@@ -167,7 +167,7 @@ def SA_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 	po.join()
 		
 	result = np.array(result)
-	lineMin = np.argmin(result, axis=0)[0] # position of lowest chi-squared value from initial guesses
+	lineMin = np.argmin(result[:,0]) # position of lowest chi-squared value from initial guesses
 	SA_params = result[lineMin][1] # parameter dictionary associated with lowest chi-squared
 	best_chi_sq = result[lineMin][0] # lowest chi-squared value
 	current_chi_sq = best_chi_sq

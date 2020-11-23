@@ -1,4 +1,4 @@
-# Copyright 2014 M. A. Zentile, J. Keaveney, L. Weller, D. Whiting,
+# Copyright 2014-2019 M. A. Zentile, J. Keaveney, L. Weller, D. Whiting,
 # C. S. Adams and I. G. Hughes.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@ fit using Marquardt-Levenberg.
 Complete rebuild of the original RR fitting module now using lmfit
 
 Author: JK
-Last updated 2018-02-19
+Last updated 2018-02-21 MAZ
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
@@ -38,10 +38,10 @@ import copy
 import psutil
 from multiprocessing import Pool
 
-from . import MLFittingRoutine as ML
+import MLFittingRoutine as ML
 import lmfit as lm
 
-from .spectra import get_spectra
+from spectra import get_spectra
 
 p_dict_bounds_default = {'lcell':1e-3,'Bfield':100., 'T':20., 
 							'GammaBuf':20., 'shift':100.,
@@ -107,7 +107,7 @@ def RR_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 	
 	# default number of iterations based on number of fit parameters
 	if no_evals == None:
-		no_evals = 2**(3+2*nFitParams)
+		no_evals = nFitParams**2 + 5 # 2**(3+2*nFitParams)
 		
 	# Create random array of starting parameters based on parameter ranges given in p_dict range dictionary
 	# Scattered uniformly over the parameter space
@@ -135,10 +135,10 @@ def RR_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 	po = Pool() # Pool() uses all cores, Pool(3) uses 3 cores for example.
 	
 	## use lower process priority so computer is still responsive while calculating!!
-	parent = psutil.Process()
-	parent.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
-	for child in parent.children():
-		child.nice(psutil.IDLE_PRIORITY_CLASS)
+	# parent = psutil.Process()
+	# parent.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+	# for child in parent.children():
+	# 	child.nice(psutil.IDLE_PRIORITY_CLASS)
 	
 	args_list = [(data, E_in, p_dict_list[k], p_dict_bools, data_type) for k in range(no_evals)]
 	
@@ -153,7 +153,7 @@ def RR_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 	result = np.array(result)
 	#print result
 	#result = result.astype(np.float64)
-	lineMin = np.argmin(result, axis=0)[0] ## pick the fit with the lowest cost value
+	lineMin = np.argmin(result[:,0]) ## pick the fit with the lowest cost value
 
 	best_values = result[lineMin][1] # best parameter dictionary
 	if verbose:
@@ -171,7 +171,7 @@ def RR_fit(data,E_in,p_dict,p_dict_bools,p_dict_bounds=None,no_evals=None,data_t
 	return best_values, final_result
 
 def test_fit():
-	p_dict = {'elem':'Rb','Dline':'D2','T':80.,'lcell':2e-3,'Bfield':600.,'Btheta':0.,
+	p_dict = {'Elem':'Rb','Dline':'D2','T':80.,'lcell':2e-3,'Bfield':600.,'Btheta':0.,
 		'Bphi':0.,'GammaBuf':0.,'shift':0.}
 	
 	# only need to specify parameters that are varied

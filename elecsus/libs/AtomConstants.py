@@ -20,14 +20,14 @@ nuclear spin g-factors are those corresponding to the Bohr magneton.
 
 Called by EigenSystem.py
 
-Last updated 2018-02-19 JK
+Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
 
 
 from numpy import pi, sqrt
-from .FundamentalConstants import *
+from FundamentalConstants import *
 
 class IdealAtom:
 	""" Constants for an ideal atom with no hyperfine structure, and only electron spin """

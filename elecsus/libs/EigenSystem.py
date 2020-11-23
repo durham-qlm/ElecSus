@@ -24,7 +24,7 @@ FundamentalConstants -- fundamental physical constants from CODATA
 AtomConstants        -- All isotope and D-line specific constants
 sz_lsi               -- 
 
-Last updated 2018-02-19 JK
+Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
@@ -37,10 +37,10 @@ from __future__ import (division, print_function, absolute_import)
 from scipy.linalg import eig, eigh
 from numpy import pi, append, transpose, identity
 
-from .AtomConstants import *
-from .FundamentalConstants import *
-from .sz_lsi import sz, lz, Iz
-from .fs_hfs import Hfs,Hhfs,Bbhfs
+from AtomConstants import *
+from FundamentalConstants import *
+from sz_lsi import sz, lz, Iz
+from fs_hfs import Hfs,Hhfs,Bbhfs
 
 
 class Hamiltonian(object):

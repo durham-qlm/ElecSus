@@ -16,6 +16,14 @@
 
 ElecSus GUI
 
+v3.0.7 (2019-10-22)
+	-- Large speed improvement for electric field calculations.
+	-- Fixed bug to allow data saving in python 3.
+	-- Bug with relative paths fixed.
+	-- Reduced number of initial points in RR fitting routine.
+	-- Fixed compatibility issue with matplotlib versions > 3.
+	-- Fixed the fitting test modules
+
 v3.0.6 (2018-04-12)
 	--	Bug in the data processing module (libs/data_proc.py) fixed
 	-- Minor change to color cycler to support new version of matplotlib (v2.2)
@@ -121,8 +129,8 @@ Requirements:
 	
 LICENSE info: APACHE version 2
 
-James Keaveney and co-authors
-2017/8
+James Keaveney, Mark Zentile and co-authors
+2017-20
 """
 # py 2.7 compatibility
 from __future__ import (division, print_function, absolute_import)
