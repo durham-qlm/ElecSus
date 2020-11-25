@@ -255,7 +255,7 @@ class PlotSelectionPopUp(wx.PopupTransientWindow):
 
         win = wx.Panel(self)  # ,wx.ID_ANY,pos=(0,0),size=(180,200),style=0)
 
-        self.selection = wx.CheckListBox(win, wx.ID_ANY, choices=OutputPlotTypes, size=(150, -1))  # ,pos=(0,0))
+        self.selection = wx.CheckListBox(win, wx.ID_ANY, choices=OutputPlotTypes, size=(-1, -1))  # ,pos=(0,0))
         # self.win.Bind(wx.EVT_CHECKLISTBOX, self.OnTicked, self.selection)
         self.selection.Bind(wx.EVT_CHECKLISTBOX, self.OnTicked)
 
@@ -336,7 +336,7 @@ class PlotSelectionDialog(wx.Dialog):
 
         win = wx.Panel(self)  # ,wx.ID_ANY,pos=(0,0),size=(180,200),style=0)
 
-        self.selection = wx.CheckListBox(win, wx.ID_ANY, choices=OutputPlotTypes, size=(120, -1))  # ,pos=(0,0))
+        self.selection = wx.CheckListBox(win, wx.ID_ANY, choices=OutputPlotTypes, size=(-1, -1))  # ,pos=(0,0))
         # self.win.Bind(wx.EVT_CHECKLISTBOX, self.OnTicked, self.selection)
         self.selection.Bind(wx.EVT_CHECKLISTBOX, self.OnTicked)
 
@@ -1487,7 +1487,7 @@ class ElecSus_GUI_Frame(wx.Frame):
 
     def __init__(self, parent, title):
         """ Initialise main frame """
-        wx.Frame.__init__(self, None, title=title, size=(2000, 900))
+        wx.Frame.__init__(self, None, title=title, size=(1200, 500))
 
         ## EXPERIMENTAL
         # self._mgr = aui.AuiManager()
@@ -2918,7 +2918,7 @@ def start():
     app = wx.App(redirect=False)
     frame = ElecSus_GUI_Frame(None, "ElecSus GUI - General Magneto Optics")
 
-    frame.SetSize((1600, 900))
+    frame.SetSize((1200, 500)) # Not all of us have giant 1600 px monitors. 
     frame.Centre()
     frame.Show()
     app.MainLoop()
