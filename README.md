@@ -4,6 +4,9 @@
 > may be some bugs introduced that have not been found yet. If you find any bugs, please raise an issue
 > on GitHub and the team will address it soon. Alternatively please fix anything and create a pull request,
 > and your changes will be merged.
+> 
+> **Version Incompatibility**: There is currently a known issue with wxpython and python 3.10 that means 
+> ElecSus only supports python 3.9 and below. This will be updated once these issues are resolved.
 
 
 ElecSus v3.0.7: Extension to Arbitrary magnetic field vectors
