@@ -1,4 +1,8 @@
-ElecSus v3.0.7: Extension to Arbitrary magnetic field vectors
+> **Version Incompatibility**: There is currently a known issue with wxpython and python 3.10 that means 
+> ElecSus only supports python 3.9 and below. This will be updated once these issues are resolved.
+
+
+ElecSus v3.1.0(beta): Extension to Arbitrary magnetic field vectors
 ==============
 
 A program to calculate the electric susceptibility of an atomic ensemble. The program is designed to model weak-probe laser spectra on the D-lines of thermal alkali metal vapour cells. The program also includes fitting routines which allow experimental parameters to be extracted from experimental spectroscopic data.
