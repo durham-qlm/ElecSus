@@ -1,3 +1,11 @@
+> **Important Note:** The dev branch is the most up to date version, with many changes to make
+> the program run more reliably 'out-of-the-box' (i.e. using python setup.py install or pip install ./),
+> including automatically installing all dependencies. It does however require some testing and there
+> may be some bugs introduced that have not been found yet. If you find any bugs, please raise an issue
+> on GitHub and the team will address it soon. Alternatively please fix anything and create a pull request,
+> and your changes will be merged.
+
+
 ElecSus v3.0.7: Extension to Arbitrary magnetic field vectors
 ==============
 
