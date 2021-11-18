@@ -14,6 +14,7 @@ elecsus/docs/ElecSus GUI User Guide.pdf
 elecsus/images/elecsus-logo.PNG
 elecsus/images/elecsus-logo.png
 elecsus/images/elecsus_t_group.ico
+elecsus/images/jqc-logo.PNG
 elecsus/images/jqc-logo.png
 elecsus/libs/AtomConstants.py
 elecsus/libs/BasisChanger.py
