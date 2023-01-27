@@ -45,33 +45,36 @@ import RotationMatrices as RM
 import BasisChanger as BC
 import JonesMatrices as JM
 import solve_dielectric as SD
+import beyond_weak_fields as bwf
 
 # direct testing
 import matplotlib.pyplot as plt
 
 # Default values for parameters
-p_dict_defaults = {	'Elem':'Rb', 'Dline':'D2', 
-							'lcell':75e-3,'Bfield':0., 'T':20., 
+p_dict_defaults = {	'Elem':'Rb', 'Dline':'D2',
+							'lcell':75e-3,'Bfield':0., 'T':20.,
 							'GammaBuf':0., 'shift':0.,
 							# Polarisation of light
-							'theta0':0., 'Pol':50., 
+							'theta0':0., 'Pol':50.,
 							# B-field angle w.r.t. light k-vector
 							'Btheta':0, 'Bphi':0,
 							'Constrain':True, 'DoppTemp':20.,
 							'rb85frac':72.17, 'K40frac':0.01, 'K41frac':6.73,
+							# Beyond weak fields
+							'laserPower': 1e-15, 'laserWaist': 5e-3,
 							'BoltzmannFactor':True}
 
 def FreqStren(groundLevels,excitedLevels,groundDim,
 			  excitedDim,Dline,hand,BoltzmannFactor=True,T=293.16):
-	""" 
-	Calculate transition frequencies and strengths by taking dot
-	products of relevant parts of the ground / excited state eigenvectors 
 	"""
-	
+	Calculate transition frequencies and strengths by taking dot
+	products of relevant parts of the ground / excited state eigenvectors
+	"""
+
 	transitionFrequency = zeros(groundDim*2*groundDim) #Initialise lists
 	transitionStrength = zeros(groundDim*2*groundDim)
 	transNo = 0
-	
+
 	## Boltzmann factor: -- only really needed when energy splitting of ground state is large
 	if BoltzmannFactor:
 		groundEnergies = array(groundLevels)[:,0].real
@@ -96,7 +99,7 @@ def FreqStren(groundLevels,excitedLevels,groundDim,
 		interatorList = list(range(groundDim))
 	elif Dline=='D2':
 		interatorList = list(range(groundDim,excitedDim))\
-	
+
 	# find difference in energies and do dot product between (all) ground states
 	# 	and selected parts of excited state matrix
 	for gg in range(groundDim):
@@ -108,13 +111,13 @@ def FreqStren(groundLevels,excitedLevels,groundDim,
 											  +excitedLevels[ee][0].real))
 				# We choose to perform the ground manifold reduction (see
 				# equation (4) in manual) here for convenience.
-				
+
 				## Boltzmann factor:
-				if BoltzmannFactor: 
+				if BoltzmannFactor:
 					transitionStrength[transNo] = 1./3 * cleb2 * BoltzDist[gg]
 				else:
 					transitionStrength[transNo] = 1./3 * cleb2 * 1./groundDim
-				
+
 				transNo += 1
 
 	#print 'No transitions (ElecSus): ',transNo
@@ -130,18 +133,18 @@ def add_voigt(d,DoppTemp,atomMass,wavenumber,gamma,voigtwidth,
 	wavenumber =  wavenumber + detune/c # Allow the wavenumber to change (large detuning)
 	u = sqrt(2.0*kB*DoppTemp/atomMass)
 	ku = wavenumber*u
-	
+
 	# Fadeeva function:
 	a = gamma/ku
 	b = detune/ku
 	y = 1.0j*(0.5*sqrt(pi)/ku)*wofz(b+0.5j*a)
-	
+
 	ab = y.imag
 	disp = y.real
 	#interpolate lineshape functions
 	f_ab = interp1d(detune,ab)
 	f_disp = interp1d(detune,disp)
-	
+
 	#Add contributions from all transitions to user defined detuning axis
 	lab = zeros(xpts)
 	ldisp = zeros(xpts)
@@ -163,26 +166,26 @@ def add_voigt(d,DoppTemp,atomMass,wavenumber,gamma,voigtwidth,
 		zdisp += zstrength[line]*f_disp(2.0*pi*(d-xc)*1.0e6)
 	return lab, ldisp, rab, rdisp, zab, zdisp
 
-def calc_chi(X, p_dict,verbose=False):			   
+def calc_chi(X, p_dict,verbose=False):
 	"""
 	Computes the complex susceptibility for sigma plus/minus and pi transitions as a 1D array
 
 	Arguments:
-	
+
 		X: 		Detuning axis (float, list, or numpy array) in MHz
 		p_dict: 	Dictionary containing all parameters (the order of parameters is therefore not important)
-				
+
 			Dictionary keys:
 
 			Key				DataType	Unit		Description
 			---				---------	----		-----------
 			Elem	   			str			--			The chosen alkali element.
 			Dline	  			str			--			Specifies which D-line transition to calculate for (D1 or D2)
-			
+
 			# Experimental parameters
 			Bfield	 			float			Gauss	Magnitude of the applied magnetic field
 			T		 			float			Celsius	Temperature used to calculate atomic number density
-			GammaBuf   	float			MHz		Extra lorentzian broadening (usually from buffer gas 
+			GammaBuf   	float			MHz		Extra lorentzian broadening (usually from buffer gas
 															but can be any extra homogeneous broadening)
 			shift	  			float			MHz		A global frequency shift of the atomic resonance frequencies
 
@@ -194,16 +197,16 @@ def calc_chi(X, p_dict,verbose=False):
 			rb85frac   		float			%			percentage of rubidium-85 atoms
 			K40frac			float			%			percentage of potassium-40 atoms
 			K41frac			float			%			percentage of potassium-41 atoms
-			
+
 			lcell	  			float			m			length of the vapour cell
 			theta0	 		float			degrees	Linear polarisation angle w.r.t. to the x-axis
 			Pol				float			%			Percentage of probe beam that drives sigma minus (50% = linear polarisation)
-			
+
 			NOTE: If keys are missing from p_dict, default values contained in p_dict_defaults will be loaded.
-			
+
 			Any additional keys in the dict are ignored.
 	"""
-	
+
 	# get parameters from dictionary
 	if 'Elem' in list(p_dict.keys()):
 		Elem = p_dict['Elem']
@@ -253,12 +256,12 @@ def calc_chi(X, p_dict,verbose=False):
 		BoltzmannFactor =  p_dict['BoltzmannFactor']
 	else:
 		BoltzmannFactor =  p_dict_defaults['BoltzmannFactor']
-	
-	
+
+
 	if verbose: print(('Temperature: ', T, '\tBfield: ', Bfield))
 	# convert X to array if needed (does nothing otherwise)
 	X = array(X)
-   
+
 	# Change to fraction from %
 	rb85frac = rb85frac/100.0
 	K40frac  = K40frac/100.0
@@ -280,7 +283,7 @@ def calc_chi(X, p_dict,verbose=False):
 													Rb85_ES.groundManifold,
 													Rb85_ES.excitedManifold,
 													Rb85_ES.ds,Rb85_ES.dp,
-													Dline,'Left',BoltzmannFactor,T+273.16)		  
+													Dline,'Left',BoltzmannFactor,T+273.16)
 
 			# Rb-85 allowed transitions for light driving sigma plus
 			renergy85, rstrength85, rtransno85 = FreqStren(
@@ -288,14 +291,14 @@ def calc_chi(X, p_dict,verbose=False):
 													Rb85_ES.excitedManifold,
 													Rb85_ES.ds,Rb85_ES.dp,
 													Dline,'Right',BoltzmannFactor,T+273.16)
-			
+
 			# Rb-85 allowed transitions for light driving pi
 			zenergy85, zstrength85, ztransno85 = FreqStren(
 													Rb85_ES.groundManifold,
 													Rb85_ES.excitedManifold,
 													Rb85_ES.ds,Rb85_ES.dp,
 													Dline,'Z',BoltzmannFactor,T+273.16)
-			
+
 
 		if rb87frac!=0.0:
 			Rb87atom = AC.Rb87
@@ -321,9 +324,9 @@ def calc_chi(X, p_dict,verbose=False):
 													Rb87_ES.excitedManifold,
 													Rb87_ES.ds,Rb87_ES.dp,
 													Dline,'Z',BoltzmannFactor,T+273.16)
-													
-			
-													
+
+
+
 		if Dline=='D1':
 			transitionConst = AC.RbD1Transition
 		elif Dline=='D2':
@@ -350,7 +353,7 @@ def calc_chi(X, p_dict,verbose=False):
 		renergy, rstrength, rtransno = FreqStren(Cs_ES.groundManifold,
 												 Cs_ES.excitedManifold,
 												 Cs_ES.ds,Cs_ES.dp,Dline,
-												 'Right',BoltzmannFactor,T+273.16)		
+												 'Right',BoltzmannFactor,T+273.16)
 		zenergy, zstrength, ztransno = FreqStren(Cs_ES.groundManifold,
 												 Cs_ES.excitedManifold,
 												 Cs_ES.ds,Cs_ES.dp,Dline,
@@ -378,7 +381,7 @@ def calc_chi(X, p_dict,verbose=False):
 		zenergy, zstrength, ztransno = FreqStren(Na_ES.groundManifold,
 												 Na_ES.excitedManifold,
 												 Na_ES.ds,Na_ES.dp,Dline,
-												 'Z',BoltzmannFactor,T+273.16)												 
+												 'Z',BoltzmannFactor,T+273.16)
 		if Dline=='D1':
 			transitionConst = AC.NaD1Transition
 		elif Dline=='D2':
@@ -391,7 +394,7 @@ def calc_chi(X, p_dict,verbose=False):
 		if K39frac!=0.0:
 			K39atom = AC.K39
 			K39_ES = ES.Hamiltonian('K39',Dline,1.0,Bfield)
-			
+
 			lenergy39, lstrength39, ltransno39 = FreqStren(
 													K39_ES.groundManifold,
 													K39_ES.excitedManifold,
@@ -409,7 +412,7 @@ def calc_chi(X, p_dict,verbose=False):
 		if K40frac!=0.0:
 			K40atom = AC.K40
 			K40_ES = ES.Hamiltonian('K40',Dline,1.0,Bfield)
-			
+
 			lenergy40, lstrength40, ltransno40 = FreqStren(
 													K40_ES.groundManifold,
 													K40_ES.excitedManifold,
@@ -427,7 +430,7 @@ def calc_chi(X, p_dict,verbose=False):
 		if K41frac!=0.0:
 			K41atom = AC.K41
 			K41_ES = ES.Hamiltonian('K41',Dline,1.0,Bfield)
-			
+
 			lenergy41, lstrength41, ltransno41 = FreqStren(
 													K41_ES.groundManifold,
 													K41_ES.excitedManifold,
@@ -465,7 +468,7 @@ def calc_chi(X, p_dict,verbose=False):
 
 	# For thin cells: Don't add Doppler effect, by setting DopplerTemperature to near-zero
 	# can then convolve with different velocity distribution later on
-		
+
 	d = (array(X)-shift) #Linear detuning
 	xpts = len(d)
 	maxdev = amax(abs(d))
@@ -489,7 +492,7 @@ def calc_chi(X, p_dict,verbose=False):
 					(transitionConst.wavelength/(2.0*pi))**(3)
 	gamma = gamma0 + gammaself
 	gamma = gamma + (2.0*pi*GammaBuf*1.e6) #Add extra lorentzian broadening
-		
+
 	maxShiftedEnergyLevel = amax(abs(AllEnergyLevels)) #integer value in MHz
 	voigtwidth = int(1.1*(maxdev+maxShiftedEnergyLevel))
 	wavenumber = transitionConst.wavevectorMagnitude
@@ -522,7 +525,7 @@ def calc_chi(X, p_dict,verbose=False):
 		ChiImLeft = prefactor*(rb85frac*lab85+rb87frac*lab87)
 		ChiImRight = prefactor*(rb85frac*rab85+rb87frac*rab87)
 		ChiImZ = prefactor*(rb85frac*zab85 + rb87frac*zab87)
-		
+
 
 	elif Elem=='Cs':
 		lab, ldisp, rab, rdisp, zab, zdisp = 0,0,0,0,0,0
@@ -590,45 +593,45 @@ def calc_chi(X, p_dict,verbose=False):
 	totalChiPlus = ChiRealLeft + 1.j*ChiImLeft
 	totalChiMinus = ChiRealRight + 1.j*ChiImRight
 	totalChiZ = ChiRealZ + 1.j*ChiImZ
-	
+
 	return totalChiPlus, totalChiMinus, totalChiZ
 
 def get_Efield(X, E_in, Chi, p_dict, verbose=False):
-	""" 
-	Most general form of calculation - return the electric field vector E_out. 
-	Can use Jones matrices to calculate all other experimental spectra from 
+	"""
+	Most general form of calculation - return the electric field vector E_out.
+	Can use Jones matrices to calculate all other experimental spectra from
 	this, as in the get_spectra2() method
-	
+
 	Electric field is in the lab frame, in the X/Y/Z basis:
 		- light propagation is along the Z axis, X is horizontal and Y is vertical dimension
-		
+
 	To change between x/y and L/R bases, one may use:
 			E_left = 1/sqrt(2) * ( E_x - i.E_y )
 			E_right = 1/sqrt(2) * ( E_x + i.E_y )
 	(See BasisChanger.py module)
-	
-	Allows calculation with non-uniform B fields by slicing the cell with total length L into 
+
+	Allows calculation with non-uniform B fields by slicing the cell with total length L into
 	n smaller parts with length L/n - assuming that the field is uniform over L/n,
-	which can be checked by convergence testing. E_out can then be used as the new E_in 
+	which can be checked by convergence testing. E_out can then be used as the new E_in
 	for each subsequent cell slice.
-	
-	Different to get_spectra() in that the input electric field, E_in, must be defined, 
+
+	Different to get_spectra() in that the input electric field, E_in, must be defined,
 	and the only quantity returned is the output electric field, E_out.
-	
+
 	Arguments:
-	
+
 		X:			Detuning in MHz
 		E_in:		Array of [E_x, E_y, E_z], complex
-						If E_x/y/z are each 1D arrays (with the same dimensions as X) 
+						If E_x/y/z are each 1D arrays (with the same dimensions as X)
 						then the polarisation depends on detuning - used e.g. when simulating
 						a non-uniform magnetic field
 						If E_x/y/z are single (complex) values, then the input polarisation is
 						assumed to be independent of the detuning.
 		Chi:		(3,len(X)) array of susceptibility values, for sigma+, sigma-, and pi transitions
 		p_dict:	Parameter dictionary - see get_spectra() docstring for details.
-	
+
 	Returns:
-		
+
 		E_out:	Detuning-dependent output Electric-field vector.
 					2D-Array of [E_x, E_y, E_z] where E_x/y/z are 1D arrays with same dimensions
 					as the detuning axis.
@@ -642,7 +645,7 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 	if verbose:
 		print('Electric field input:')
 		print(E_in)
-	
+
 	#print 'Input Efield shape: ',E_in.shape
 	# check detuning axis X has the correct dimensions. If not, make it so.
 	if E_in.shape != (3,len(X)):
@@ -651,7 +654,7 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 			E_in = np.array([np.ones(len(X))*E_in[0],np.ones(len(X))*E_in[1],np.ones(len(X))*E_in[2]])
 		else:
 			raise ValueError( 'ERROR in method get_Efield(): INPUT ELECTRIC FIELD E_in BADLY DEFINED' )
-	
+
 	#print 'New Efield shape: ', E_in.shape
 
 	# fill in required dictionary keys from defaults if not given
@@ -659,7 +662,7 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 		lcell = p_dict['lcell']
 	else:
 		lcell = p_dict_defaults['lcell']
-		
+
 	if 'Elem' in list(p_dict.keys()):
 		Elem = p_dict['Elem']
 	else:
@@ -668,7 +671,7 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 		Dline = p_dict['Dline']
 	else:
 		Dline = p_dict_defaults['Dline']
-	
+
 	## get magnetic field spherical coordinates
 	# defaults to 0,0 i.e. B aligned with kvector of light (Faraday)
 	if 'Bfield' in list(p_dict.keys()):
@@ -683,18 +686,18 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 		Bphi = p_dict['Bphi']
 	else:
 		Bphi = p_dict_defaults['Bphi']
-		
+
 	# direction of wavevector (for double-pass geometry simulations)
 	if 'wavevector_dirn' in list(p_dict.keys()):
 		wavevector_dirn = p_dict['wavevector_dirn']
 	else:
 		wavevector_dirn = 1
-	
+
 	if wavevector_dirn == -1:
 		# light propagating backwards, but always calculate assuming light travelling in the +z direction,
 		# therefore flip B-field 180 degrees around (can use either theta or phi for this)
 		Btheta += np.pi
-	
+
 	# get wavenumber
 	transition = AC.transitions[Elem+Dline]
 	wavenumber = transition.wavevectorMagnitude * wavevector_dirn
@@ -705,13 +708,13 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 	# Rotate initial Electric field so that B field lies in x-z plane
 	# (Effective polarisation rotation)
 	E_xz = RM.rotate_around_z(E_in.T,Bphi)
-		
+
 	# Find eigen-vectors for propagation and create rotation matrix
 	RM_ary, n1, n2 = SD.solve_diel(ChiPlus,ChiMinus,ChiZ,Btheta,Bfield)
 
 	# take conmplex conjugate of rotation matrix
 	RM_ary = RM_ary.conjugate()
-	
+
 	# propagation matrix
 	PropMat = np.array(
 				[	[exp(1.j*n1*wavenumber*lcell),np.zeros(len(n1)),np.zeros(len(n1))],
@@ -719,13 +722,13 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 					[np.zeros(len(n1)),np.zeros(len(n1)),np.ones(len(n1))]	])
 	#print 'prop matrix shape:',PropMat.T.shape
 	#print 'prop mat [0]: ', PropMat.T[0]
-	
+
 	# calcualte output field - a little messy to make it work nicely with array operations
 	# - need to play around with matrix dimensions a bit
 	# Effectively this does this, element-wise: E_out_xz = RotMat.I * PropMat * RotMat * E_xz
-	
+
 	E_xz = np.reshape(E_xz.T, (len(X),3,1))
-	
+
 	# E_out_xz = np.zeros((len(X),3,1),dtype='complex')
 	# E_out = np.zeros_like(E_out_xz)
 	# for i in range(len(X)):
@@ -734,52 +737,52 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 	# 	#inverse rotation matrix
 	# 	RMI_ary = np.matrix(RM_ary.T[i].T).I
 	# 	#print 'Inverse rotation matrix:\n',RMI_ary
-		
-	# 	E_out_xz[i] = RMI_ary * np.matrix(PropMat.T[i]) * np.matrix(RM_ary.T[i].T)*np.matrix(E_xz[i]) 
+
+	# 	E_out_xz[i] = RMI_ary * np.matrix(PropMat.T[i]) * np.matrix(RM_ary.T[i].T)*np.matrix(E_xz[i])
 	# 	#print 'E out xz i: ',E_out_xz[i].T
 	# 	E_out[i] = RM.rotate_around_z(E_out_xz[i].T[0],-Bphi)
 
 	ary_of_RMI_ary = np.linalg.inv(np.transpose(RM_ary.T,(0,2,1))) #Gives full array of RMI matrices
 	fast_E_out_xz = matmul(matmul(matmul(ary_of_RMI_ary,PropMat.T),np.transpose(RM_ary.T,(0,2,1))),E_xz)
-	fast_E_out = RM.rotate_around_z2(np.transpose(fast_E_out_xz,(0,2,1))[::,0],-Bphi) 
+	fast_E_out = RM.rotate_around_z2(np.transpose(fast_E_out_xz,(0,2,1))[::,0],-Bphi)
 
 	#print 'E out [0]: ',E_out[0]
 	#print 'E out shape: ',E_out.shape
-	
+
 	## return electric field vector - can then use Jones matrices to do everything else
 	#return E_out.T[0], np.matrix(RM_ary.T[i])
 	return fast_E_out.T[0], np.matrix(RM_ary.T[-1])
 
 def get_spectra(X, E_in, p_dict, outputs=None):
-	""" 
-	Calls get_Efield() to get Electric field, then use Jones matrices 
+	"""
+	Calls get_Efield() to get Electric field, then use Jones matrices
 	to calculate experimentally useful quantities.
-	
+
 	Alias for the get_spectra2 method in libs.spectra.
-	
+
 	Inputs:
-		detuning_range [ numpy 1D array ] 
+		detuning_range [ numpy 1D array ]
 			The independent variable and defines the detuning points over which to calculate. Values in MHz
-		
-		E_in [ numpy 1/2D array ] 
+
+		E_in [ numpy 1/2D array ]
 			Defines the input electric field vector in the xyz basis. The z-axis is always the direction of propagation (independent of the magnetic field axis), and therefore the electric field should be a plane wave in the x,y plane. The array passed to this method should be in one of two formats:
 				(1) A 1D array of (Ex,Ey,Ez) which is the input electric field for all detuning values;
 				or
 				(2) A 2D array with dimensions (3,len(detuning_range)) - i.e. each detuning has a different electric field associated with it - which will happen on propagation through a birefringent/dichroic medium
-		
+
 		p_dict [ dictionary ]
 			Dictionary containing all parameters (the order of parameters is therefore not important)
 				Dictionary keys:
-	
+
 				Key				DataType	Unit		Description
 				---				---------	----		-----------
 				Elem	   			str			--			The chosen alkali element.
 				Dline	  			str			--			Specifies which D-line transition to calculate for (D1 or D2)
-				
+
 				# Experimental parameters
 				Bfield	 			float			Gauss	Magnitude of the applied magnetic field
 				T		 			float			Celsius	Temperature used to calculate atomic number density
-				GammaBuf   	float			MHz		Extra lorentzian broadening (usually from buffer gas 
+				GammaBuf   	float			MHz		Extra lorentzian broadening (usually from buffer gas
 																but can be any extra homogeneous broadening)
 				shift	  			float			MHz		A global frequency shift of the atomic resonance frequencies
 				DoppTemp   	float			Celsius	Temperature linked to the Doppler width (used for
@@ -790,36 +793,36 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 				rb85frac   		float			%			percentage of rubidium-85 atoms
 				K40frac			float			%			percentage of potassium-40 atoms
 				K41frac			float			%			percentage of potassium-41 atoms
-				
+
 				lcell	  			float			m			length of the vapour cell
 				theta0	 		float			degrees	Linear polarisation angle w.r.t. to the x-axis
 				Pol				float			%			Percentage of probe beam that drives sigma minus (50% = linear polarisation)
-				
+
 				NOTE: If keys are missing from p_dict, default values contained in p_dict_defaults will be loaded.
-		
+
 		outputs: an iterable (list,tuple...) of strings that defines which spectra are returned, and in which order.
 			If not specified, defaults to None, in which case a default set of outputs is returned, which are:
 				S0, S1, S2, S3, Ix, Iy, I_P45, I_M45, alphaPlus, alphaMinus, alphaZ
-	
+
 	Returns:
 		A list of output arrays as defined by the 'outputs' keyword argument.
-		
-		
+
+
 	Example usage:
 		To calculate the room temperature absorption of a 75 mm long Cs reference cell in an applied magnetic field of 100 G aligned along the direction of propagation (Faraday geometry), between -10 and +10 GHz, with an input electric field aligned along the x-axis:
-		
+
 		detuning_range = np.linspace(-10,10,1000)*1e3 # GHz to MHz conversion
 		E_in = np.array([1,0,0])
 		p_dict = {'Elem':'Cs', 'Dline':'D2', 'Bfield':100, 'T':21, 'lcell':75e-3}
-		
+
 		[Transmission] = calculate(detuning_range,E_in,p_dict,outputs=['S0'])
-		
-		
+
+
 		More examples are available in the /tests/ folder
 	"""
-	
+
 	# get some parameters from p dictionary
-	
+
 	# need in try/except or equiv.
 	if 'Elem' in list(p_dict.keys()):
 		Elem = p_dict['Elem']
@@ -845,16 +848,39 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 		Pol = p_dict['Pol']
 	else:
 		Pol = p_dict_defaults['Pol']
+	if 'laserPower' in list(p_dict.keys()):
+		laserPower = p_dict['laserPower']
+	else:
+		laserPower = p_dict_defaults['laserPower']
+	if 'laserWaist' in list(p_dict.keys()):
+		laserWaist = p_dict['laserWaist']
+	else:
+		laserWaist = p_dict_defaults['laserWaist']
+
+
+	# Beyond weak fields
+	if 'laserPower' in list(p_dict.keys()):
+		principalQuantumNumber =
+		bwf.arc
+		groundState = bwf.state(5, 0, 1/2)     # 5S1/2
+    	excitedState_D1 = bwf.state(5, 1, 1/2)  # 5P1/2
+    	excitedState_D2 = bwf.state(5, 1, 3/2)  # 5P1/2
+    	Rb85_D1 = bwf.atomicSystem(
+			'Rb85',
+			[groundState, excitedState_D1],
+			T=20 + 273.15,
+			beam_diameter=5e-3)
+
 
 	# get wavenumber
 	transition = AC.transitions[Elem+Dline]
 
 	wavenumber = transition.wavevectorMagnitude
-	
+
 	# Calculate Susceptibility
 	ChiPlus, ChiMinus, ChiZ = calc_chi(X, p_dict)
 	Chi = [ChiPlus, ChiMinus, ChiZ]
-	
+
 	# Complex refractive index
 	nPlus = sqrt(1.0+ChiPlus) #Complex refractive index driving sigma plus transitions
 	nMinus = sqrt(1.0+ChiMinus) #Complex refractive index driving sigma minus transitions
@@ -867,39 +893,39 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 		X = np.array(X)
 
 
-	
+
 	# Calculate E_field
 	E_out, R = get_Efield(X, E_in, Chi, p_dict)
 	#print 'Output E field (Z): \n', E_out[2]
-	
+
 
 	## Apply Jones matrices
-	
+
 	# Transmission - total intensity - just E_out**2 / E_in**2
 	E_in = np.array(E_in)
 	if E_in.shape == (3,):
 			E_in = np.array([np.ones(len(X))*E_in[0],np.ones(len(X))*E_in[1],np.ones(len(X))*E_in[2]])
-	
+
 	# normalised by input intensity
 	I_in = (E_in * E_in.conjugate()).sum(axis=0)
-	
+
 	S0 = (E_out * E_out.conjugate()).sum(axis=0) / I_in
-	
+
 	Iz = (E_out[2] * E_out[2].conjugate()).real / I_in
-	
+
 	Transmission = S0
-	
-	
+
+
 	## Some quantities from Faraday geometry don't make sense when B and k not aligned, but leave them here for historical reasons
 	TransLeft = exp(-2.0*nPlus.imag*wavenumber*lcell)
 	TransRight = exp(-2.0*nMinus.imag*wavenumber*lcell)
-	
+
 	# Faraday rotation angle (including incident linear polarisation angle)
 	phiPlus = wavenumber*nPlus.real*lcell
 	phiMinus = wavenumber*nMinus.real*lcell
-	phi = (phiMinus-phiPlus)/2.0 
+	phi = (phiMinus-phiPlus)/2.0
 	##
-	
+
 	#Stokes parameters
 
 	#S1#
@@ -907,17 +933,17 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 	Ix =  (Ex * Ex.conjugate()).sum(axis=0) / I_in
 	Ey =  np.array(JM.VertPol_xy * E_out[:2])
 	Iy =  (Ey * Ey.conjugate()).sum(axis=0) / I_in
-	
+
 	S1 = Ix - Iy
-	
+
 	#S2#
 	E_P45 =  np.array(JM.LPol_P45_xy * E_out[:2])
 	E_M45 =  np.array(JM.LPol_M45_xy * E_out[:2])
 	I_P45 = (E_P45 * E_P45.conjugate()).sum(axis=0) / I_in
 	I_M45 = (E_M45 * E_M45.conjugate()).sum(axis=0) / I_in
-	
+
 	S2 = I_P45 - I_M45
-	
+
 	#S3#
 	# change to circular basis
 	E_out_lrz = BC.xyz_to_lrz(E_out)
@@ -925,9 +951,9 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 	Er =  np.array(JM.CPol_R_lr * E_out_lrz[:2])
 	Il = (El * El.conjugate()).sum(axis=0) / I_in
 	Ir = (Er * Er.conjugate()).sum(axis=0) / I_in
-	
+
 	S3 = Ir - Il
-	
+
 	Ir = Ir.real
 	Il = Il.real
 	Ix = Ix.real
@@ -948,15 +974,15 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 	#GIPlus = nMinus.real + (X + transition.v0*1.0e-6)*dnWRTv
 	#dnWRTv = derivative(d,nPlus.real)
 	#GIMinus = nPlus.real + (X + transition.v0*1.0e-6)*dnWRTv
-		
+
 	# Valid outputs
-	op = {'S0':S0, 'S1':S1, 'S2':S2, 'S3':S3, 'Ix':Ix, 'Iy':Iy, 'Il':Il, 'Ir':Ir, 
-				'I_P45':I_P45, 'I_M45':I_M45, 
-				'alphaPlus':alphaPlus, 'alphaMinus':alphaMinus, 'alphaZ':alphaZ, 
-				'E_out':E_out, 
+	op = {'S0':S0, 'S1':S1, 'S2':S2, 'S3':S3, 'Ix':Ix, 'Iy':Iy, 'Il':Il, 'Ir':Ir,
+				'I_P45':I_P45, 'I_M45':I_M45,
+				'alphaPlus':alphaPlus, 'alphaMinus':alphaMinus, 'alphaZ':alphaZ,
+				'E_out':E_out,
 				'Chi':Chi, 'ChiPlus':ChiPlus, 'ChiMinus':ChiMinus, 'ChiZ':ChiZ
 			}
-	
+
 	if (outputs == None) or ('All' in outputs):
 		# Default - return 'all' outputs (as used by GUI)
 		return S0.real,S1.real,S2.real,S3.real,Ix.real,Iy.real,I_P45.real,I_M45.real,alphaPlus,alphaMinus,alphaZ
@@ -964,7 +990,7 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 	# Return the variable names mentioned in the outputs list of strings
 		# the strings in outputs must exactly match the local variable names here!
 		return [op[output_str] for output_str in outputs]
-	
+
 def output_list():
 	""" Helper method that returns a list of all possible variables that get_spectra can return """
 	tstr = " \
@@ -991,5 +1017,5 @@ def output_list():
 	alphaMinus			Absorption coefficient due to sigma-minus transitions \n\
 	GIMinus				Group index of left-circularly polarised light \n\
 	GIPlus				Group index of right-circularly polarised light \n\
-	"	
+	"
 	print(tstr)
