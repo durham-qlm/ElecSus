@@ -858,20 +858,6 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 		laserWaist = p_dict_defaults['laserWaist']
 
 
-	# Beyond weak fields
-	if 'laserPower' in list(p_dict.keys()):
-		principalQuantumNumber =
-		bwf.arc
-		groundState = bwf.state(5, 0, 1/2)     # 5S1/2
-    	excitedState_D1 = bwf.state(5, 1, 1/2)  # 5P1/2
-    	excitedState_D2 = bwf.state(5, 1, 3/2)  # 5P1/2
-    	Rb85_D1 = bwf.atomicSystem(
-			'Rb85',
-			[groundState, excitedState_D1],
-			T=20 + 273.15,
-			beam_diameter=5e-3)
-
-
 	# get wavenumber
 	transition = AC.transitions[Elem+Dline]
 
@@ -910,6 +896,39 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 	I_in = (E_in * E_in.conjugate()).sum(axis=0)
 
 	S0 = (E_out * E_out.conjugate()).sum(axis=0) / I_in
+
+	# Beyond weak fields
+	if 'laserPower' in list(p_dict.keys()):
+		print('Detected non-weak fields!')
+		if Elem=='Na':
+			principalQuantumNumber = 3
+		if Elem=='K':
+			principalQuantumNumber = 4
+		if Elem=='Rb':
+			principalQuantumNumber = 5
+		if Elem=='Cs':
+			principalQuantumNumber = 6
+		groundState = bwf.state(principalQuantumNumber, 0, 1/2)
+
+		if Dline == 'D1':
+			excitedState = bwf.state(principalQuantumNumber, 1, 1/2)  # P1/2
+		elif Dline == 'D2':
+			excitedState = bwf.state(principalQuantumNumber, 1, 3/2)  # P3/2
+
+		Rb85 = bwf.atomicSystem(
+			'Rb85',
+			[groundState, excitedState],
+			T=p_dict['T'] + 273.15,
+			beam_diameter=p_dict['laserWaist'])
+		Rb87 = bwf.atomicSystem(
+			'Rb87',
+			[groundState, excitedState],
+			T=p_dict['T'] + 273.15,
+			beam_diameter=p_dict['laserWaist'])
+
+		S0_85 = Rb85.transmission(beam_ge=(X*1e6, p_dict['laserPower'], p_dict['laserWaist']), z=p_dict['lcell'], doppler=True)
+		S0_87 = Rb87.transmission(beam_ge=(X*1e6, p_dict['laserPower'], p_dict['laserWaist']), z=p_dict['lcell'], doppler=True)
+		S0 = S0_85 * S0_87
 
 	Iz = (E_out[2] * E_out[2].conjugate()).real / I_in
 
