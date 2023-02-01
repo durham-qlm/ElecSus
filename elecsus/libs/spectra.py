@@ -900,37 +900,44 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 	# Beyond weak fields
 	if 'laserPower' in list(p_dict.keys()):
 		print('Detected non-weak fields!')
+		# First need to translate ElecSus' ['Elem', 'Dline']
+		# into bwf's arbitrary ['ElemXY', 'states'] scheme.
+		# Mass numbers are given to create multiple atomic systems.
+		if Elem=='Li':
+			principalQuantumNumber = 2
+			mass_numbers = [6, 7]
+			fractions = [7.4, 92.6]
 		if Elem=='Na':
 			principalQuantumNumber = 3
+			mass_numbers = [23]
+			fractions = [100]
 		if Elem=='K':
 			principalQuantumNumber = 4
+			mass_numbers = [39, 40, 41]
+			fractions = [100 - p_dict['K40frac'] - p_dict['K41frac'], p_dict['K40frac'], p_dict['K41frac']]
 		if Elem=='Rb':
 			principalQuantumNumber = 5
+			mass_numbers = [85, 87]
+			fractions = [p_dict['rb85frac'], 100 - p_dict['rb85frac']]
 		if Elem=='Cs':
 			principalQuantumNumber = 6
+			mass_numbers = [133]
+			fractions = [100]
 		groundState = bwf.state(principalQuantumNumber, 0, 1/2)
-
 		if Dline == 'D1':
 			excitedState = bwf.state(principalQuantumNumber, 1, 1/2)  # P1/2
 		elif Dline == 'D2':
 			excitedState = bwf.state(principalQuantumNumber, 1, 3/2)  # P3/2
 
-		Rb85 = bwf.atomicSystem(
-			'Rb85',
-			[groundState, excitedState],
-			T=p_dict['T'] + 273.15,
-			beam_diameter=p_dict['laserWaist'])
-		Rb87 = bwf.atomicSystem(
-			'Rb87',
-			[groundState, excitedState],
-			T=p_dict['T'] + 273.15,
-			beam_diameter=p_dict['laserWaist'])
-		Rb85.atom.abundance = p_dict['rb85frac'] / 100
-		Rb87.atom.abundance = 1 - p_dict['rb85frac'] / 100
+		atoms = []
+		for mass_number, fraction in zip(mass_numbers, fractions):
+			atom = bwf.atomicSystem(f'{Elem}{mass_number}', [groundState, excitedState], p_dict)
+			atom.atom.abundance = fraction / 100
+			atoms.append(atom)
 
-		S0_85 = Rb85.transmission(beam_ge=((X-p_dict['shift'])*1e6, p_dict['laserPower'], p_dict['laserWaist']), z=p_dict['lcell'], doppler=True)
-		S0_87 = Rb87.transmission(beam_ge=((X-p_dict['shift'])*1e6, p_dict['laserPower'], p_dict['laserWaist']), z=p_dict['lcell'], doppler=True)
-		S0 = S0_85 * S0_87
+		beam_ge=((X-shift)*1e6, laserPower, laserWaist)
+		transmissions = [atom.transmission(beam_ge, z=lcell) for atom in atoms]
+		S0 = np.prod(np.array(transmissions), axis=0)
 
 	Iz = (E_out[2] * E_out[2].conjugate()).real / I_in
 
