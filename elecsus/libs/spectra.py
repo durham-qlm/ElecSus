@@ -925,9 +925,11 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 			[groundState, excitedState],
 			T=p_dict['T'] + 273.15,
 			beam_diameter=p_dict['laserWaist'])
+		Rb85.atom.abundance = p_dict['rb85frac'] / 100
+		Rb87.atom.abundance = 1 - p_dict['rb85frac'] / 100
 
-		S0_85 = Rb85.transmission(beam_ge=(X*1e6, p_dict['laserPower'], p_dict['laserWaist']), z=p_dict['lcell'], doppler=True)
-		S0_87 = Rb87.transmission(beam_ge=(X*1e6, p_dict['laserPower'], p_dict['laserWaist']), z=p_dict['lcell'], doppler=True)
+		S0_85 = Rb85.transmission(beam_ge=((X-p_dict['shift'])*1e6, p_dict['laserPower'], p_dict['laserWaist']), z=p_dict['lcell'], doppler=True)
+		S0_87 = Rb87.transmission(beam_ge=((X-p_dict['shift'])*1e6, p_dict['laserPower'], p_dict['laserWaist']), z=p_dict['lcell'], doppler=True)
 		S0 = S0_85 * S0_87
 
 	Iz = (E_out[2] * E_out[2].conjugate()).real / I_in
