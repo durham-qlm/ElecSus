@@ -45,7 +45,7 @@ import RotationMatrices as RM
 import BasisChanger as BC
 import JonesMatrices as JM
 import solve_dielectric as SD
-import beyond_weak_fields as bwf
+import beyond_weak_fields.atomic_system as bwf
 
 # direct testing
 import matplotlib.pyplot as plt

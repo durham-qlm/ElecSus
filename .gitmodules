@@ -1,3 +1,3 @@
-[submodule "beyond_weak_fields"]
+[submodule "elecsus/libs/beyond_weak_fields"]
 	path = elecsus/libs/beyond_weak_fields
 	url = https://github.com/hpaantee/beyond_weak_fields
