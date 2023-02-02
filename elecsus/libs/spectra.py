@@ -822,41 +822,15 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 	"""
 
 	# get some parameters from p dictionary
-
-	# need in try/except or equiv.
-	if 'Elem' in list(p_dict.keys()):
-		Elem = p_dict['Elem']
-	else:
-		Elem = p_dict_defaults['Elem']
-	if 'Dline' in list(p_dict.keys()):
-		Dline = p_dict['Dline']
-	else:
-		Dline = p_dict_defaults['Dline']
-	if 'shift' in list(p_dict.keys()):
-		shift = p_dict['shift']
-	else:
-		shift = p_dict_defaults['shift']
-	if 'lcell' in list(p_dict.keys()):
-		lcell = p_dict['lcell']
-	else:
-		lcell = p_dict_defaults['lcell']
-	if 'theta0' in list(p_dict.keys()):
-		theta0 = p_dict['theta0']
-	else:
-		theta0 = p_dict_defaults['theta0']
-	if 'Pol' in list(p_dict.keys()):
-		Pol = p_dict['Pol']
-	else:
-		Pol = p_dict_defaults['Pol']
-	if 'laserPower' in list(p_dict.keys()):
-		laserPower = p_dict['laserPower']
-	else:
-		laserPower = p_dict_defaults['laserPower']
-	if 'laserWaist' in list(p_dict.keys()):
-		laserWaist = p_dict['laserWaist']
-	else:
-		laserWaist = p_dict_defaults['laserWaist']
-
+	p_dict = {**p_dict_defaults, **p_dict}
+	Elem = p_dict['Elem']
+	Dline = p_dict['Dline']
+	shift = p_dict['shift']
+	lcell = p_dict['lcell']
+	theta0 = p_dict['theta0']
+	Pol = p_dict['Pol']
+	laserPower = p_dict['laserPower']
+	laserWaist = p_dict_defaults['laserWaist']
 
 	# get wavenumber
 	transition = AC.transitions[Elem+Dline]
@@ -897,7 +871,7 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 
 	S0 = (E_out * E_out.conjugate()).sum(axis=0) / I_in
 
-	# Beyond weak fields
+	# Override S0 if we are beyond weak fields
 	if 'laserPower' in list(p_dict.keys()):
 		print('Detected non-weak fields!')
 		# First need to translate ElecSus' ['Elem', 'Dline']
