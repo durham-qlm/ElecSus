@@ -44,6 +44,7 @@ from libs import spectra
 from libs import MLFittingRoutine as ML
 from libs import SAFittingRoutine as SA
 from libs import RRFittingRoutine as RR
+from libs import BWFFittingRoutine as BWF
 
 # if os.name == 'posix':
 # 	from time import time as timing #Timing for linux or apple
@@ -207,6 +208,9 @@ def fit_data(data, p_dict, p_dict_bools, E_in=None, p_dict_bounds=None, data_typ
         # then do ML fit on the end to get error bars ...
         optParams, result = ML.ML_fit(data, E_in, optParams_DE, p_dict_bools, p_dict_bounds=p_dict_bounds,
                                       data_type=data_type)
+    elif fit_algorithm in ('BWF', 'beyond_weak_fields'):
+        print('\nPerforming fitting for beyond weak fields')
+        optParams, result = BWF.BWF_fit(data, E_in, p_dict, p_dict_bools, data_type=data_type)
     else:
         print('\nPerforming fitting by Random-Restart hill climbing method.')
         # The more parameters to fit, the more evaluations we need to do.
