@@ -61,7 +61,7 @@ p_dict_defaults = {	'Elem':'Rb', 'Dline':'D2',
 							'Constrain':True, 'DoppTemp':20.,
 							'rb85frac':72.17, 'K40frac':0.01, 'K41frac':6.73,
 							# Beyond weak fields
-							'laserPower': 1e-15, 'laserWaist': 5e-3,
+							'laserPower': 1e-15, 'laserWaist': 5e-3, 'bwf_precision': 'high',
 							'BoltzmannFactor':True}
 
 def FreqStren(groundLevels,excitedLevels,groundDim,
@@ -914,7 +914,7 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 			atoms.append(atom)
 
 		beam_ge=((X-shift)*1e6, laserPower, laserWaist)
-		transmissions = [atom.transmission(beam_ge, z=lcell) for atom in atoms]
+		transmissions = [atom.transmission(beam_ge, z=lcell, precision=p_dict['bwf_precision']) for atom in atoms]
 		S0 = np.prod(np.array(transmissions), axis=0)
 
 	Iz = (E_out[2] * E_out[2].conjugate()).real / I_in
