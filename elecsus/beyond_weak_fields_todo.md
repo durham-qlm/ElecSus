@@ -1,3 +1,2 @@
-- beam_diameter is fixed, while power can be changed later...
+- beam_diameter is fixed, while power can be changed later... (transit time broadening)
 - How to calculate isotope shifts? Currently taken from elecsus/libs/AtomConstants.py (different for D1/D2)
-- How to implement fitting?
