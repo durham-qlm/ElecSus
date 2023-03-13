@@ -913,8 +913,8 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 			atom.atom.abundance = fraction / 100
 			atoms.append(atom)
 
-		beam_ge=((X-shift)*1e6, laserPower, laserWaist)
-		transmissions = [atom.transmission(beam_ge, z=lcell, precision=p_dict['bwf_precision']) for atom in atoms]
+		beam_ge=bwf.beam(w=(X-shift)*1e6, P=laserPower, D=laserWaist)
+		transmissions = [atom.transmission([beam_ge], z=lcell, precision=p_dict['bwf_precision']) for atom in atoms]
 		S0 = np.prod(np.array(transmissions), axis=0)
 
 	Iz = (E_out[2] * E_out[2].conjugate()).real / I_in
