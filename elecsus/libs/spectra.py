@@ -835,7 +835,7 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 	theta0 = p_dict['theta0']
 	Pol = p_dict['Pol']
 	laserPower = p_dict['laserPower']
-	laserWaist = p_dict_defaults['laserWaist']
+	laserWaist = p_dict['laserWaist']
 
 	# get wavenumber
 	transition = AC.transitions[Elem+Dline]
