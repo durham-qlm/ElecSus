@@ -32,6 +32,7 @@ from scipy.interpolate import interp1d
 import os
 import sys
 import inspect
+import types
 cmd_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]))
 if cmd_folder not in sys.path:
     sys.path.insert(0, cmd_folder)
@@ -753,7 +754,7 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 	#return E_out.T[0], np.matrix(RM_ary.T[i])
 	return fast_E_out.T[0], np.matrix(RM_ary.T[-1])
 
-def get_spectra(X, E_in, p_dict, outputs=None):
+def get_spectra(X, E_in, p_dict, outputs=None, _static=types.SimpleNamespace(atoms=[])):
 	"""
 	Calls get_Efield() to get Electric field, then use Jones matrices
 	to calculate experimentally useful quantities.
@@ -907,14 +908,15 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 		elif Dline == 'D2':
 			excitedState = bwf.state(principalQuantumNumber, 1, 3/2)  # P3/2
 
-		atoms = []
-		for mass_number, fraction in zip(mass_numbers, fractions):
-			atom = bwf.atomicSystem(f'{Elem}{mass_number}', [groundState, excitedState], p_dict)
-			atom.atom.abundance = fraction / 100
-			atoms.append(atom)
+		if len(_static.atoms) == 0:
+			print('Generate atoms...')
+			for mass_number, fraction in zip(mass_numbers, fractions):
+				atom = bwf.atomicSystem(f'{Elem}{mass_number}', [groundState, excitedState], p_dict)
+				atom.atom.abundance = fraction / 100
+				_static.atoms.append(atom)
 
 		beam_ge=bwf.beam(w=(X-shift)*1e6, P=laserPower, D=laserWaist)
-		transmissions = [atom.transmission([beam_ge], z=lcell, precision=p_dict['bwf_precision']) for atom in atoms]
+		transmissions = [atom.transmission([beam_ge], z=lcell, precision=p_dict['bwf_precision']) for atom in _static.atoms]
 		S0 = np.prod(np.array(transmissions), axis=0)
 
 	Iz = (E_out[2] * E_out[2].conjugate()).real / I_in
