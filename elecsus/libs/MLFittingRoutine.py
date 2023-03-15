@@ -65,18 +65,9 @@ def fit_function(x,E_x,E_y,E_phase,T,lcell,Bfield,Btheta,Bphi,GammaBuf,shift,
 	#reconstruct parameter dictionary from arguments
 	p_dict = {'Elem':Elem,'Dline':Dline,'T':T,'lcell':lcell,
 			'Bfield':Bfield,'Btheta':Btheta,'Bphi':Bphi,'GammaBuf':GammaBuf,
-			'shift':shift,'DoppTemp':DoppTemp,'Constrain':Constrain,"bwf_precision": bwf_precision,
+			'shift':shift,'DoppTemp':DoppTemp,'Constrain':Constrain,
+			'laserPower': laserPower, 'laserWaist': laserWaist, 'bwf_precision': bwf_precision,
 			'rb85frac':rb85frac,'K40frac':K40frac,'K41frac':K41frac}
-	# Add beyond weak field parameters, but only if they are not None
-	bwf_dict = {
-		key: value for key, value in
-		{
-			"laserPower": laserPower,
-			"laserWaist": laserWaist,
-		}.items()
-		if value != 0
-	}
-	p_dict = {**p_dict, **bwf_dict}
 
 	#for key in p_dict.keys():
 	#	print key, p_dict[key]
