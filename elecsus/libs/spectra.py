@@ -62,7 +62,7 @@ p_dict_defaults = {	'Elem':'Rb', 'Dline':'D2',
 							'Constrain':True, 'DoppTemp':20.,
 							'rb85frac':72.17, 'K40frac':0.01, 'K41frac':6.73,
 							# Beyond weak fields
-							'laserPower': 1e-15, 'laserWaist': 5e-3, 'bwf_precision': 'high',
+							'laserPower': 0, 'laserWaist': 5e-3, 'bwf_precision': 'high',
 							'BoltzmannFactor':True}
 
 def FreqStren(groundLevels,excitedLevels,groundDim,
@@ -823,11 +823,6 @@ def get_spectra(X, E_in, p_dict, outputs=None, _static=types.SimpleNamespace(ato
 	"""
 
 	# get some parameters from p dictionary
-	if 'laserPower' in list(p_dict.keys()):
-		print('Detected non-weak fields!')
-		beyondWeakFields = True
-	else:
-		beyondWeakFields = False
 	p_dict = {**p_dict_defaults, **p_dict}
 	Elem = p_dict['Elem']
 	Dline = p_dict['Dline']
@@ -878,7 +873,7 @@ def get_spectra(X, E_in, p_dict, outputs=None, _static=types.SimpleNamespace(ato
 	S0 = (E_out * E_out.conjugate()).sum(axis=0) / I_in
 
 	# Override S0 if we are beyond weak fields
-	if beyondWeakFields:
+	if laserPower > 0:
 		# First need to translate ElecSus' ['Elem', 'Dline']
 		# into bwf's arbitrary ['ElemXY', 'states'] scheme.
 		# Mass numbers are given to create multiple atomic systems.
