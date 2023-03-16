@@ -909,6 +909,9 @@ def get_spectra(X, E_in, p_dict, outputs=None, _static=types.SimpleNamespace(ato
 				atom = bwf.atomicSystem(f'{Elem}{mass_number}', [groundState, excitedState], p_dict)
 				atom.atom.abundance = fraction / 100
 				_static.atoms.append(atom)
+		else:
+			for i in range(len(_static.atoms)):
+				_static.atoms[i].update(p_dict)
 
 		beam_ge=bwf.beam(w=(X-shift)*1e6, P=laserPower, D=laserWaist)
 		transmissions = [atom.transmission([beam_ge], z=lcell, precision=p_dict['bwf_precision']) for atom in _static.atoms]
