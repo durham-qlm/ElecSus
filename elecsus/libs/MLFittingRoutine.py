@@ -41,7 +41,7 @@ from spectra import get_spectra
 
 import time
 
-def fit_function(x,E_x,E_y,E_phase,T,lcell,Bfield,Btheta,Bphi,GammaBuf,shift,
+def fit_function(x,E_x,E_y,E_phase,T,lcell,Bfield=0,Btheta=0,Bphi=0,GammaBuf=0,shift=0,
 							DoppTemp=20,rb85frac=72.17,K40frac=0.01,K41frac=6.73,
 							Elem='Rb',Dline='D2',Constrain=True,bwf_precision='high',
 							laserPower=0,laserWaist=5e-3,output='S0', verbose=False):
