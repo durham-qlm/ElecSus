@@ -1,5 +1,6 @@
-- LUT: how to allow both change of power and diameter? or how to calculate corresponding intensity?
-- beam_diameter is fixed, while power can be changed later... (transit time broadening)
+- LUT: Why is the scaling factor with ^1 and not ^2 as expected?
+- Rename: laserWaist ist actually laserDiameter
+- depending on beam profile, peak intensity is different (flat/gaussian)
 - How to calculate isotope shifts? Currently taken from elecsus/libs/AtomConstants.py (different for D1/D2)
 - If we remove 'Bfield':0.,'Btheta':0., 'Bphi':0.,'GammaBuf':0.,'shift':0 from p_dict (already non-bwf),
   we get "ValueError: array must not contain infs or Nans"
