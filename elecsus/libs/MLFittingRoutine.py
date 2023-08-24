@@ -39,8 +39,6 @@ import lmfit as lm
 
 from spectra import get_spectra
 
-import time
-
 def fit_function(x,E_x,E_y,E_phase,T,lcell,Bfield,Btheta,Bphi,GammaBuf,shift,
 							DoppTemp=20,rb85frac=72.17,K40frac=0.01,K41frac=6.73,
 							Elem='Rb',Dline='D2',Constrain=True,output='S0', verbose=False):
