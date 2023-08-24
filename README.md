@@ -115,7 +115,7 @@ Apache License, Version 2.0. A Copy of the license is provided.
 Change Log
 -----------
 v 3.0.8
-- All references to deprecated 'time' module have been removed.
+- All references to deprecated 'time' module have been removed (excluding GUI).
 - New 'Notebook' folder added. It is designed to house jupyter notebooks which showcase various functions in ElecSus
 - The folder currently contains 'Basic Calculations.ipynb' which calculates spectra, susceptibilities and refractive indices.
 
