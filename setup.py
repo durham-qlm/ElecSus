@@ -21,7 +21,7 @@ setup(
     author='James Keaveney et. al.',
     author_email='jkeaveney23@gmail.com',
     url='https://github.com/Quantum-Light-and-Matter/ElecSus',
-    version='3.1.0__dev',
+    version='3.0.8',
     packages=['elecsus', 'elecsus.libs', 'elecsus.tests'],
     package_data={'elecsus': ['images/elecsus_group.ico',
                               'images/elecsus_t_group.ico',
