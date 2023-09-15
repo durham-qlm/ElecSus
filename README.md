@@ -58,8 +58,13 @@ Python and required packages must be installed prior to installing ElecSus.
 -----
 Usage
 -----
+1. For running 'Basic Calculations' notebook (RECOMMENDED FOR NEW USERS):
+- After package installation, open 'Basic Calculations.ipynb' using Jupyter, JupyterLab etc.
+- Run all cells to see all the basic calculations ElecSus can perform.
+- Adjust parameters in the second cell of the notebook.
+- A list of parameters and keywords can be found commented out in the first cell.
 
-1. For GUI operation:
+2. For GUI operation:
 
 - After package installation, from the python interpreter type:
 
@@ -77,7 +82,7 @@ Usage
     ```
 
 
-2. For integration into external code:
+3. For integration into external code:
 
 - The elecsus_methods.py module contains two methods, calculate() and fit_data(), 
   which allow for easy integration into external codes. See the elecsus_methods.py doc strings
@@ -94,6 +99,11 @@ and download the paper.
 For the ElecSus paper that goes with version 3, see https://doi.org/10.1016/j.cpc.2017.12.001
 Both papers are published open-access and therefore freely available.
 
+A notebook which goes processes and fits data with ElecSus can be found here:
+https://github.com/durham-qlm/scope2elecsus. This is accompanied by its own published paper which is also open access and freely available:
+https://doi.org/10.1088/1367-2630/ac9cfe
+
+
 -------
 License
 -------
@@ -104,6 +114,10 @@ Apache License, Version 2.0. A Copy of the license is provided.
 -----------
 Change Log
 -----------
+v 3.0.8
+- All references to deprecated 'time' module have been removed (excluding GUI).
+- New 'Notebook' folder added. It is designed to house jupyter notebooks which showcase various functions in ElecSus
+- The folder currently contains 'Basic Calculations.ipynb' which calculates spectra, susceptibilities and refractive indices.
 
 v 3.0.7
 - Large speed improvement for electric field calculations.

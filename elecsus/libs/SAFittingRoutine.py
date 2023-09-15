@@ -29,7 +29,6 @@ import matplotlib.pyplot as plt
 import warnings
 import sys
 import copy
-import time
 
 import pickle as pickle
 
