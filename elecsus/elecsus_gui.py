@@ -2857,14 +2857,18 @@ class ElecSusGuiFrame(wx.Frame):
         # print len(self.y_arrays)
         # print self.y_arrays
 
-        xy_data = list(zip(self.x_array, self.y_arrays[0].real, self.y_arrays[1].real, self.y_arrays[2].real,
-                           self.y_arrays[3].real,
-                           self.y_arrays[4][0].real, self.y_arrays[4][1].real,
-                           self.y_arrays[5][0].real, self.y_arrays[5][1].real,
-                           self.y_arrays[6][0].real, self.y_arrays[6][1].real,
-                           self.y_arrays[7][0].real, self.y_arrays[7][1].real, self.y_arrays[7][2].real))
-        success = write_csv(xy_data, filename, titles=['Detuning'] + OutputTypes)
-        if not success:
+        try:
+            xy_data = list(zip(self.x_array, self.y_arrays[0].real, self.y_arrays[1].real, self.y_arrays[2].real,
+                               self.y_arrays[3].real,
+                               self.y_arrays[4][0].real, self.y_arrays[4][1].real,
+                               self.y_arrays[5][0].real, self.y_arrays[5][1].real,
+                               self.y_arrays[6][0].real, self.y_arrays[6][1].real,
+                               self.y_arrays[7][0].real, self.y_arrays[7][1].real, self.y_arrays[7][2].real))
+            success = write_csv(xy_data, filename, titles=['Detuning'] + OutputTypes)
+            if not success:
+                raise AttributeError
+
+        except AttributeError:
             problem_dlg = wx.MessageDialog(self, "There was an error saving the data...", "Error saving",
                                            wx.OK | wx.ICON_ERROR)
             problem_dlg.ShowModal()
@@ -2887,14 +2891,14 @@ def write_csv(xy, filename, titles=None):
     """
 
     try:
-        with open(filename, 'wb') as csvfile:
+        with open(filename, 'wt') as csvfile:
             csv_writer = csv.writer(csvfile, delimiter=',')
             if titles is not None:
                 csv_writer.writerow(titles)
             for xy_line in xy:
                 csv_writer.writerow(xy_line)
         return True
-    except:  # TODO: define exception type!
+    except csv.Error:
         return False
 
 
