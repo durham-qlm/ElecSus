@@ -49,21 +49,11 @@ git clone https://github.com/durham-qlm/ElecSus.git
 cd ElecSus
 
 # 2. Create and activate the conda environment
-#    (installs Python 3.12, NumPy, SciPy, lmfit, Dash, and all other dependencies)
+#    (installs Python 3.12, NumPy, SciPy, lmfit and all other dependencies)
 conda env create -f environment.yml
 conda activate elecsus4
 
 # 3. Install ElecSus in editable mode
-pip install -e .
-```
-
-**Existing environment?**  If you already have an ElecSus conda environment (it may
-be named `elecsus` rather than `elecsus4`), activate it and install the v4 GUI
-dependencies manually:
-
-```bash
-conda activate elecsus          # or whatever your env is called
-pip install "dash>=2.17" "dash-bootstrap-components>=1.6" "plotly>=5.22"
 pip install -e .
 ```
 
@@ -284,56 +274,6 @@ All code comments and docstrings are corrected. The **API key names are kept
 unchanged** for backward compatibility, but the **GUI labels every output by
 the physical σ** — the GUI shows `Trans σ⁺`, `n(σ⁺)`, `α σ⁺` … which map to the
 API keys `TransRight`, `nMinus`, `alphaPlus`.
-
----
-
-## Web GUI
-
-The interactive GUI runs in any browser and requires no extra dependencies beyond
-the standard install.
-
-```bash
-# 1. Activate the conda environment
-#    (fresh install from environment.yml → elecsus4;
-#     older installs may be named elecsus — use whichever name you have)
-conda activate elecsus4
-
-# 2. Launch the GUI
-python -m elecsus.elecsus_dash_gui
-
-# 3. Open your browser at
-#    http://127.0.0.1:8050
-```
-
-The GUI dependencies (`dash`, `dash-bootstrap-components`, `plotly`) are already
-included in `environment.yml`.  To stop the server press **Ctrl-C** in the terminal.
-
-**Port conflict?**  If port 8050 is already in use (e.g. from a previous run),
-pass `--port` to pick a free one:
-
-```bash
-python -m elecsus.elecsus_dash_gui --port 8051
-# then open http://127.0.0.1:8051
-```
-
-To find and kill a stale process on port 8050:
-
-```bash
-lsof -ti tcp:8050 | xargs kill   # macOS / Linux
-```
-
-The GUI supports:
-
-- Single-cell forward calculation for all output types (S0, S1, S2, S3, Ix, Iy, …)
-- Fit-to-data on the single-cell tab (CSV upload, ML or differential-evolution),
-  with **Export fit CSV** (detuning, data, best fit, residual)
-- Cascaded two-cell filters (same species in both cells, element/D-line locked
-  to cell 1) with an optional intermediate linear polariser — default crossed
-  at 90°, the magneto-optical-filter (MOF) topology for laser input light.
-  The plot shows the spectrum after cell 1 and the total after both filters.
-- Buffer gas parameters (`BufferGas`, `BufferPressure`, `BufferTemp_fill`)
-- Interactive plots with zoom/pan and CSV export of the current spectrum
-- Dark/light theme is fixed to the Durham light theme
 
 ---
 
