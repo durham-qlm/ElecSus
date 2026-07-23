@@ -28,12 +28,9 @@ differential evolution needs lmfit version >= 0.9.3
 Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
-from __future__ import (division, print_function, absolute_import)
 
 
 
-import matplotlib.pyplot as plt
- 
 import numpy as np
 import lmfit as lm
 
@@ -41,43 +38,57 @@ from spectra import get_spectra
 
 def fit_function(x,E_x,E_y,E_phase,T,lcell,Bfield,Btheta,Bphi,GammaBuf,shift,
 							DoppTemp=20,rb85frac=72.17,K40frac=0.01,K41frac=6.73,
-							Elem='Rb',Dline='D2',Constrain=True,output='S0', verbose=False):
+							Elem='Rb',Dline='D2',Constrain=True,
+							BufferGas='',BufferPressure=0.0,BufferTemp_fill=293.15,
+							output='S0', verbose=False):
 	"""
 	Fit function that is used by lmfit. Essentially just a wrapper for the get_spectra method,
 	but the arguments are specified explicitly rather than being inside a parameter dictionary.
-	
+
 	Also allows for the polarisation components to be fitted
-	
+
+	# [ES4 NEW] BufferGas / BufferPressure / BufferTemp_fill: fixed cell-fabrication
+	# properties (known from how the cell was filled), not fit parameters. They are
+	# forwarded to get_spectra so the dynamic buffer-gas model (see BufferGasData.py)
+	# can compute GammaBuf/shift from T during fitting.
+	# BufferGas defaults to '' rather than None: lmfit's make_params() reinterprets any
+	# independent variable whose *signature* default is None/bool as a fittable numeric
+	# Parameter if it's also passed as a kwarg, which crashes on a non-numeric gas name
+	# like 'Ne'. An empty-string default keeps BufferGas classified as a pure
+	# independent variable; it's normalised back to None below.
+
 	For explanation of parameters, see the documentation for get_spectra (in spectra.py)
 	"""
-	
+
 	if verbose:
 		print(('Parameters: ', Bfield, T, lcell, E_x, E_y, E_phase, Btheta, Bphi, GammaBuf, shift, DoppTemp, rb85frac))
-	
+
 	# Ex / Ey separated to allow for fitting polarisation
 	E_in = np.array([E_x,E_y*np.exp(1.j*E_phase),0.])
-	
+
 	#print E_in
-	
+
 	#reconstruct parameter dictionary from arguments
 	p_dict = {'Elem':Elem,'Dline':Dline,'T':T,'lcell':lcell,
-			'Bfield':Bfield,'Btheta':Btheta,'Bphi':Bphi,'GammaBuf':GammaBuf, 
+			'Bfield':Bfield,'Btheta':Btheta,'Bphi':Bphi,'GammaBuf':GammaBuf,
 			'shift':shift,'DoppTemp':DoppTemp,'Constrain':Constrain,
-			'rb85frac':rb85frac,'K40frac':K40frac,'K41frac':K41frac}
-	
+			'rb85frac':rb85frac,'K40frac':K40frac,'K41frac':K41frac,
+			'BufferGas':(BufferGas or None),'BufferPressure':BufferPressure,
+			'BufferTemp_fill':BufferTemp_fill}
+
 	#for key in p_dict.keys():
 	#	print key, p_dict[key]
 	outputs = [output]
-	
+
 	y_out = get_spectra(x,E_in,p_dict,outputs)[0].real
-	
+
 	return y_out
 
 def ML_fit(data,E_in,p_dict,p_dict_bools,data_type='S0',p_dict_bounds=None,method='leastsq',verbose=False):
 	"""
 	Main fitting method.
 	
-	*** Example use cases can be found in the /tests/fitting_tests.py file ***
+	*** Example use cases can be found in the /tests/test_fitting.py file ***
 
 	data:					an Nx2 iterable for the x and y data to be fitted
 	E_in:					the initial electric field input. See docstring for the spectra.py module for details.
@@ -114,13 +125,30 @@ def ML_fit(data,E_in,p_dict,p_dict_bools,data_type='S0',p_dict_bounds=None,metho
 	
 	# Non-numeric arguments to pass to fitting function
 	kwargz = {'Elem':p_dict['Elem'],'Dline':p_dict['Dline']}
-	if 'Constrain' in list(p_dict.keys()): 
+	if 'Constrain' in list(p_dict.keys()):
 		kwargz['Constrain'] = p_dict['Constrain']
 	else:
 		kwargz['Constrain'] = True
+	# [ES4 NEW] BufferGas is a fixed, non-numeric cell-fabrication property (which gas
+	# was used to fill the cell) - never a fit parameter, so it goes through kwargz
+	# alongside Elem/Dline/Constrain rather than through lmfit's Parameters.
+	kwargz['BufferGas'] = p_dict.get('BufferGas')
 	kwargz['output'] = data_type
 
-	model = lm.Model(fit_function)
+	# [ES4 MOD] lmfit ≥1.3 compatibility fix.  lmfit ≥1.3 treats non-numeric defaults as
+	# independent variables and also owns a 'verbose' kwarg on Model.fit() itself, so
+	# 'verbose' can't be passed via **kwargz without being consumed by Model.fit() rather
+	# than forwarded to fit_function.  Wrap fit_function to drop verbose from its signature
+	# so lmfit never sees it.
+	def _fit_fn(x,E_x,E_y,E_phase,T,lcell,Bfield,Btheta,Bphi,GammaBuf,shift,
+				DoppTemp=20,rb85frac=72.17,K40frac=0.01,K41frac=6.73,
+				Elem='Rb',Dline='D2',Constrain=True,
+				BufferGas='',BufferPressure=0.0,BufferTemp_fill=293.15,output='S0'):
+		return fit_function(x,E_x,E_y,E_phase,T,lcell,Bfield,Btheta,Bphi,GammaBuf,shift,
+							DoppTemp,rb85frac,K40frac,K41frac,Elem,Dline,Constrain,
+							BufferGas,BufferPressure,BufferTemp_fill,output,False)
+
+	model = lm.Model(_fit_fn)
 	params = model.make_params(**p_dict)
 	
 	params['E_x'].value = E_in[0]

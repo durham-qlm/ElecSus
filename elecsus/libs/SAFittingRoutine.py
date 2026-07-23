@@ -22,7 +22,6 @@ Complete rebuild of the original SA fitting module written by Mark A. Zentile, n
 Last updated 2018-07-12 MAZ
 """
 # py 2.7 compatibility
-from __future__ import (division, print_function, absolute_import)
 
 import numpy as np
 import matplotlib.pyplot as plt

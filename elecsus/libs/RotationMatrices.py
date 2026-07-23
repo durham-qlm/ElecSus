@@ -18,7 +18,6 @@ Rotation matrices for rotating cartesian coordinate systems around a particular 
 Last updated 2018-07-12 MAZ
 """
 # py 2.7 compatibility
-from __future__ import (division, print_function, absolute_import)
 
 
 import numpy as np

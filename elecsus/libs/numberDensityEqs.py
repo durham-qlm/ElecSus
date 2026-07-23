@@ -27,7 +27,6 @@ Can. Metall. Q. 23 (1984) 309-313.
 Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
-from __future__ import (division, print_function, absolute_import)
 
 
 from FundamentalConstants import kB

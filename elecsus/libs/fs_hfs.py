@@ -24,10 +24,9 @@ Called by EigenSystem
 Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
-from __future__ import (division, print_function, absolute_import)
 
 from numpy import identity,dot
-from scipy.linalg import kron
+from numpy import kron  # [ES4 MOD] scipy.linalg.kron removed in SciPy ≥1.14; use numpy directly
 from ang_mom import jx,jy,jz
 
 def Hfs(L,S,I):

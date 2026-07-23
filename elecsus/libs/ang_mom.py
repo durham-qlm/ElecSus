@@ -23,7 +23,6 @@ Jz called by fs_hfs.py and sz_lsi.py
 Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
-from __future__ import (division, print_function, absolute_import)
 
 from numpy import transpose,dot
 import ang_mom_p

@@ -23,7 +23,6 @@ Called by EigenSystem.py
 Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
-from __future__ import (division, print_function, absolute_import)
 
 
 from numpy import pi, sqrt

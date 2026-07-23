@@ -1,0 +1,50 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the software (this record) and the papers under preferred-citation."
+title: ElecSus
+abstract: "A program to calculate the weak-probe electric susceptibility, refractive index and transmission spectra of thermal alkali-metal vapours, and to fit the model to experimental data."
+type: software
+version: 4.0.0a1
+date-released: 2026-07-23
+license: Apache-2.0
+repository-code: "https://github.com/durham-qlm/ElecSus"
+authors:
+  - family-names: Wrathmall
+    given-names: S. A.
+    affiliation: Durham University
+  - family-names: Potvliege
+    given-names: R. M.
+    affiliation: Durham University
+  - family-names: Zentile
+    given-names: M. A.
+  - family-names: Keaveney
+    given-names: J.
+  - family-names: Weller
+    given-names: L.
+  - family-names: Whiting
+    given-names: D. J.
+  - family-names: Adams
+    given-names: C. S.
+  - family-names: Hughes
+    given-names: I. G.
+preferred-citation:
+  type: article
+  title: "ElecSus: A program to calculate the electric susceptibility of an atomic ensemble"
+  authors:
+    - family-names: Zentile
+      given-names: M. A.
+    - family-names: Keaveney
+      given-names: J.
+    - family-names: Weller
+      given-names: L.
+    - family-names: Whiting
+      given-names: D. J.
+    - family-names: Adams
+      given-names: C. S.
+    - family-names: Hughes
+      given-names: I. G.
+  journal: "Computer Physics Communications"
+  volume: 189
+  start: 162
+  end: 174
+  year: 2015
+  doi: 10.1016/j.cpc.2014.11.023

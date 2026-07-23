@@ -1,3 +1,39 @@
 # ignore python compiled files & windows thumbnail files
 *.pyc
 Thumbs.db
+.DS_Store
+
+# virtual environment / local tooling
+.venv/
+
+# LaTeX build artifacts (sources and .cls/.sty/.bst are tracked; the
+# compiled paper PDFs are rebuilt with latexmk and not versioned)
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.toc
+paper/*.bbl
+paper/*.blg
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.synctex.gz
+paper/*.spl
+paper/*.abs
+paper/paper.pdf
+paper/paper_hip.pdf
+
+# stock Elsevier CAS template distribution (the three files paper.tex
+# actually uses - cas-dc.cls, cas-common.sty, cas-model2-names.bst - are
+# committed at paper/ top level)
+paper/els-cas-templates/
+
+# manual build artifacts (sources and the compiled ElecSus_v4_Manual.pdf
+# are tracked)
+elecsus/docs/manual/*.aux
+elecsus/docs/manual/*.log
+elecsus/docs/manual/*.out
+elecsus/docs/manual/*.toc
+elecsus/docs/manual/*.fls
+elecsus/docs/manual/*.fdb_latexmk
+elecsus/docs/manual/*.synctex.gz
+elecsus/docs/manual/manual.pdf

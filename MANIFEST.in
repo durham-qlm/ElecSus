@@ -1,4 +1,3 @@
 include *.txt
-recursive-include elecsus/docs *.pdf
 recursive-include elecsus/images *.ico *.png
-recursive-include elecsus/sample_data *.csv
+include elecsus/tests/golden/es3_reference.npz

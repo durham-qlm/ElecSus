@@ -1,0 +1,7 @@
+# ElecSus Dash GUI requirements
+# Install with: pip install -r elecsus_dash_gui_requirements.txt
+
+dash>=2.14
+dash-bootstrap-components>=1.5
+plotly>=5.18
+numpy

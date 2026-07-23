@@ -35,7 +35,6 @@ will print a plot with all of the colours on, named (requires matplotlib).
 Last updated 2018-02-19 JK
 """
 # py 2.7 compatibility
-from __future__ import (division, print_function, absolute_import)
 
 ##
 # Colour numbers									Colour				Code (website)

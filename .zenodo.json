@@ -1,0 +1,18 @@
+{
+  "title": "ElecSus",
+  "description": "A program to calculate the weak-probe electric susceptibility, refractive index and transmission spectra of thermal alkali-metal vapours, and to fit the model to experimental data.",
+  "version": "4.0.0a1",
+  "upload_type": "software",
+  "access_right": "open",
+  "license": "Apache-2.0",
+  "creators": [
+    {"name": "Wrathmall, S. A.", "affiliation": "Durham University"},
+    {"name": "Potvliege, R. M.", "affiliation": "Durham University"},
+    {"name": "Zentile, M. A."},
+    {"name": "Keaveney, J."},
+    {"name": "Weller, L."},
+    {"name": "Whiting, D. J."},
+    {"name": "Adams, C. S."},
+    {"name": "Hughes, I. G."}
+  ]
+}

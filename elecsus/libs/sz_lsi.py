@@ -26,11 +26,10 @@ Calls jz from ang_mom.
 Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
-from __future__ import (division, print_function, absolute_import)
 
 
 from numpy import identity
-from scipy.linalg import kron
+from numpy import kron  # [ES4 MOD] scipy.linalg.kron removed in SciPy ≥1.14; use numpy directly
 from ang_mom import jz
 
 def sz(L,S,I):
