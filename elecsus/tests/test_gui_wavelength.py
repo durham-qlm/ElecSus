@@ -95,11 +95,21 @@ def test_compute_draws_against_the_chosen_axis():
     assert store['X'][0] == -10. and store['elem'] == 'K' and store['dline'] == 'D1'
 
 
+def _values(data):
+    """A trace's data as an array, whichever form plotly holds it in: plotly 6
+    keeps data that came from a figure dict base64-encoded, plotly 5 gives an
+    array."""
+    if isinstance(data, dict) and 'bdata' in data:
+        import base64
+        return np.frombuffer(base64.b64decode(data['bdata']), dtype=data['dtype'])
+    return np.asarray(data)
+
+
 def test_the_selector_redraws_without_computing():
     fig, store, _, _ = _single('GHz')
     redrawn = gui._redraw(fig.to_dict(), store, 'mA')
     np.testing.assert_allclose(redrawn.data[0].x, gui._x_on(store['X'], 'mA', 'K', 'D1'))
-    assert redrawn.to_dict()['data'][1]['y'] == fig.to_dict()['data'][1]['y']   # same result
+    np.testing.assert_array_equal(_values(redrawn.data[1].y), _values(fig.data[1].y))   # same result
     back = gui._redraw(redrawn.to_dict(), store, 'GHz')
     np.testing.assert_allclose(back.data[0].x, store['X'])
     titles = [back.layout[k].title.text for k in back.layout if k.startswith('xaxis')]

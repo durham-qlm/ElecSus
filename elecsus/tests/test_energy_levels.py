@@ -219,7 +219,11 @@ def test_zero_field_and_no_lines():
     import warnings
     import matplotlib.pyplot as plt
     with warnings.catch_warnings():
-        warnings.simplefilter('error', UserWarning)     # 'identical low and high xlims'
+        # the warning this is about, and only it: with the oldest matplotlib we
+        # support, its own use of pyparsing raises deprecation warnings that
+        # are also UserWarnings
+        warnings.filterwarnings('error', message='Attempting to set identical',
+                                category=UserWarning)
         fig = EL.level_diagram('Rb87', 'D1', 0., n_points=200)
     assert fig.axes[1].get_xlim()[1] > 0
     plt.close(fig)

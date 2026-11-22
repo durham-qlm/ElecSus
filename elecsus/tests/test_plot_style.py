@@ -10,6 +10,13 @@ import pytest  # noqa: E402
 
 from elecsus.libs import plot_style  # noqa: E402
 
+try:
+    # The oldest matplotlib we support (3.7) calls pyparsing by names that
+    # pyparsing 3.3 deprecates: matplotlib's warnings, not ours.
+    from pyparsing.warnings import PyparsingDeprecationWarning
+except ImportError:
+    PyparsingDeprecationWarning = None
+
 
 @pytest.mark.parametrize('size', ['default', 'paper'])
 def test_the_style_draws_without_font_warnings(size, caplog):
@@ -21,6 +28,8 @@ def test_the_style_draws_without_font_warnings(size, caplog):
         ax.legend()
         with warnings.catch_warnings(), caplog.at_level(logging.WARNING, logger='matplotlib.font_manager'):
             warnings.simplefilter('error')
+            if PyparsingDeprecationWarning is not None:
+                warnings.simplefilter('ignore', PyparsingDeprecationWarning)
             fig.canvas.draw()
         plt.close(fig)
     assert not [r for r in caplog.records if 'findfont' in r.getMessage()]
