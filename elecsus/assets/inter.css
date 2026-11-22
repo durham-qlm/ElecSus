@@ -1,0 +1,8 @@
+/* Inter (latin subset), served locally so the GUI needs no network.
+   SIL Open Font License 1.1: see LICENSE-Inter-OFL.txt. From @fontsource/inter 5.3.0. */
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(inter-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 500; font-display: swap;
+  src: url(inter-latin-500-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(inter-latin-700-normal.woff2) format('woff2'); }

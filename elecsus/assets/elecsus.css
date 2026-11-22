@@ -1,0 +1,10 @@
+/* ElecSus GUI adjustments, loaded after the theme (Dash adds assets/*.css
+   in name order).
+
+   Dash 4 draws -/+ stepper buttons inside every number input, which leaves
+   about 40 px for the value: 0.075 showed as "0.07" and 293.15 was cut off.
+   With step='any' (needed so any typed value is valid) they also jump to the
+   next whole number. Physical parameters are typed, so the steppers go. */
+.dash-input-stepper {
+  display: none;
+}

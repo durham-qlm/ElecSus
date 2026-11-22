@@ -1,0 +1,193 @@
+name: tests
+
+# [ES4] Actions minutes are limited, and macOS runners cost 10x and Windows 2x.
+# So a pull request or a push to main runs only the Linux jobs (pytest,
+# validate, the wheel and the notebooks). The full matrix -- macOS, Windows,
+# and the Python versions that are not yet in the Linux set -- runs only on a
+# manual trigger (Actions > tests > Run workflow) and on release tags. Run it
+# before a release. A run that supersedes another on the same ref cancels it,
+# and a change that touches only documents runs nothing. (GitHub does not
+# apply path filters to tag pushes.)
+#
+# "Full" below means `github.event_name == 'workflow_dispatch'` or a tag ref.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # The development install: the whole suite, including the tests that need
+  # the repository checkout (release metadata, the Briscoe data), with coverage.
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # full: 3.10 and 3.13 as well (requires-python >= 3.10)
+        python-version: ${{ fromJSON((github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')) && '["3.10", "3.11", "3.12", "3.13"]' || '["3.11", "3.12"]') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          # [ES4] the 'test' extra in pyproject.toml pulls pytest plus the GUI
+          # stack that the test_gui_* suites import
+          pip install -e ".[test]"
+      - name: Run test suite
+        run: python -m pytest -q --cov=elecsus --cov-report=term-missing
+      # [ES4] The advertised one-command check. It shells out to pytest for
+      # its suites, so it duplicates some work above -- the point is to prove
+      # the entry point itself still runs on a clean install, which nothing
+      # else tested.
+      - name: Validate the installation
+        run: python -m elecsus.validate --no-figures
+
+  # [ES4] The declared dependency floors (pyproject.toml) installed exactly,
+  # to check that "tested against" is true. Full runs only.
+  floors:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install the floors
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[test]" \
+            numpy==1.24.4 scipy==1.10.1 matplotlib==3.7.5 lmfit==1.3.4 \
+            dash==2.17.0 dash-bootstrap-components==1.6.0 plotly==5.22.0 \
+            pytest==8.0.0
+      - name: Run test suite
+        run: python -m pytest -q
+      - name: Validate the installation
+        run: python -m elecsus.validate --no-figures
+
+  # [ES4] What a user installs: build the wheel and sdist once...
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build the wheel and sdist
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build 2>&1 | tee build.log
+          # setuptools only warns when a data directory is not a package
+          if grep -E "absent from the .packages. configuration|no files found matching" build.log; then
+            echo "::error::the build warned about the package configuration"
+            exit 1
+          fi
+          twine check dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  # ...then install the wheel in a clean venv and run the packaged tests and
+  # the validator against it, from outside the checkout, so that nothing is
+  # imported from the source tree. Tests that need the repository (release
+  # metadata, the Briscoe data) skip here and run in 'pytest' above.
+  # On pull requests and pushes: Linux only. Full runs: macOS and Windows too,
+  # and the extra Python versions.
+  wheel:
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON((github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')) && '["ubuntu-latest", "macos-latest", "windows-latest"]' || '["ubuntu-latest"]') }}
+        python-version: ${{ fromJSON((github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')) && '["3.10", "3.11", "3.12", "3.13"]' || '["3.11", "3.12"]') }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Install the wheel in a clean venv
+        run: |
+          python -m venv "$RUNNER_TEMP/venv"
+          if [ "$RUNNER_OS" = Windows ]; then
+            PY="$RUNNER_TEMP/venv/Scripts/python.exe"
+          else
+            PY="$RUNNER_TEMP/venv/bin/python"
+          fi
+          echo "PY=$PY" >> "$GITHUB_ENV"
+          "$PY" -m pip install --upgrade pip
+          WHEEL=$(ls dist/*.whl)
+          "$PY" -m pip install "$WHEEL[test]"
+      - name: Run the packaged tests against the wheel
+        working-directory: ${{ runner.temp }}
+        env:
+          MPLBACKEND: Agg
+        run: |
+          "$PY" -c "import elecsus, sys; f = elecsus.__file__; print(f); sys.exit('site-packages' not in f)"
+          "$PY" -m pytest -q -p no:cacheprovider --pyargs elecsus.tests
+      - name: Validate the installation
+        working-directory: ${{ runner.temp }}
+        run: '"$PY" -m elecsus.validate --no-figures'
+
+  # The six tutorial notebooks, executed against the installed wheel: Linux on
+  # pull requests and pushes, all three systems on full runs.
+  notebooks:
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON((github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')) && '["ubuntu-latest", "macos-latest", "windows-latest"]' || '["ubuntu-latest"]') }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Install the wheel and a notebook kernel
+        run: |
+          python -m venv "$RUNNER_TEMP/venv"
+          if [ "$RUNNER_OS" = Windows ]; then
+            PY="$RUNNER_TEMP/venv/Scripts/python.exe"
+          else
+            PY="$RUNNER_TEMP/venv/bin/python"
+          fi
+          echo "PY=$PY" >> "$GITHUB_ENV"
+          "$PY" -m pip install --upgrade pip
+          WHEEL=$(ls dist/*.whl)
+          "$PY" -m pip install "$WHEEL" nbclient nbformat ipykernel
+      - name: Execute the notebooks
+        working-directory: ${{ runner.temp }}
+        env:
+          MPLBACKEND: Agg
+        run: '"$PY" "$GITHUB_WORKSPACE/Notebooks/run_notebooks.py"'

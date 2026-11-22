@@ -35,7 +35,6 @@ will print a plot with all of the colours on, named (requires matplotlib).
 Last updated 2018-02-19 JK
 """
 # py 2.7 compatibility
-from __future__ import (division, print_function, absolute_import)
 
 ##
 # Colour numbers									Colour				Code (website)
@@ -73,7 +72,7 @@ def help_dcols():
 			ax.set_yticks([])
 			ax.set_xticklabels([])
 			ax.set_yticklabels([])			
-			if colname[i] is not 'd_black':
+			if colname[i] != 'd_black':
 				ax.text(0.2,0.4,colname[i],color='k')
 			else:
 				ax.text(0.2,0.4,colname[i],color='w')

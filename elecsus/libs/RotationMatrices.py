@@ -18,11 +18,23 @@ Rotation matrices for rotating cartesian coordinate systems around a particular 
 Last updated 2018-07-12 MAZ
 """
 # py 2.7 compatibility
-from __future__ import (division, print_function, absolute_import)
 
 
 import numpy as np
 from numpy import cos, sin
+
+# [ES4 MOD] Converted off the deprecated np.matrix subclass (NumPy has signalled
+# its removal): plain ndarrays with the @ operator and np.linalg.inv.  np.matrix
+# silently collapsed a trailing length-1 axis when handed a 3-D array -- which is
+# how the stacked (n,3) input path reached these functions -- so that behaviour
+# is reproduced explicitly by _to_2d() below.
+def _to_2d(vec):
+	"""Reproduce np.matrix()'s collapse of trailing length-1 axes."""
+	arr = np.asarray(vec)
+	while arr.ndim > 2 and arr.shape[-1] == 1:
+		arr = arr[..., 0]
+	return arr
+
 
 # rotation matrices:
 
@@ -37,7 +49,7 @@ def rotate_forward(input_vec,phi,theta,test=False):
 		sin(phi)
 		cos(phi) cos(theta) )
 	or in python:
-	BVec = np.matrix([[cos(phi)*sin(theta)],[sin(phi)],[cos(phi)*cos(theta)]])
+	BVec = np.array([[cos(phi)*sin(theta)],[sin(phi)],[cos(phi)*cos(theta)]])
 	
 	We need to rotate this so the field points along the z' direction in the new coordinates (x',y',z')
 	
@@ -48,32 +60,32 @@ def rotate_forward(input_vec,phi,theta,test=False):
 		or 
 		[[x1,y1,z1],[x2,y2,z2],...] {input_vec.shape == (n,3)}
 	"""
-	BVec = np.matrix([[cos(phi)*sin(theta)],[sin(phi)],[cos(phi)*cos(theta)]])
+	BVec = np.array([[cos(phi)*sin(theta)],[sin(phi)],[cos(phi)*cos(theta)]])
 
 	# input_vec is given as a row vector [Ex,Ey,Ez] - translate to column vector [[Ex],[Ey],[Ez]]
 	input_vec_col = np.array([input_vec]).T # note - need the extra []'s around input_vec!
 	
 	# rotation around the x-axis into xz plane
-	R1 = np.matrix([[1,0,0],[0,cos(phi),-sin(phi)],[0,sin(phi),cos(phi)]])
+	R1 = np.array([[1,0,0],[0,cos(phi),-sin(phi)],[0,sin(phi),cos(phi)]])
 	# rotation around the y-axis oriented around z
-	R2 = np.matrix([[cos(-theta), 0, sin(-theta)],[0,1,0],[-sin(-theta),0,cos(-theta)]])
+	R2 = np.array([[cos(-theta), 0, sin(-theta)],[0,1,0],[-sin(-theta),0,cos(-theta)]])
 	
 	if test:
-		return R1 * R2 * np.matrix(input_vec_col), R1 * R2 * BVec
+		return R1 @ R2 @ _to_2d(input_vec_col), R1 @ R2 @ BVec
 	else:
 		## apply rotation matrices, and output as row vector [Ex,Ey,Ez] - need another transpose
-		return np.array(R1 * R2 * np.matrix(input_vec_col)).T
+		return (R1 @ R2 @ _to_2d(input_vec_col)).T
 		
 def rotate_back(input_vec,phi,theta):
-	""" Reverse the rotation that rotate_foward() method does """
+	""" Reverse the rotation that rotate_forward() method does """
 	# input_vec is given as a row vector [Ex,Ey,Ez] - translate to column vector [[Ex],[Ey],[Ez]]
 	input_vec_col = np.array([input_vec]).T # note - need the extra []'s around input_vec!
 	
-	R1 = np.matrix([[1,0,0],[0,cos(phi),-sin(phi)],[0,sin(phi),cos(phi)]])
-	R2 = np.matrix([[cos(-theta), 0, sin(-theta)],[0,1,0],[-sin(-theta),0,cos(-theta)]])
+	R1 = np.array([[1,0,0],[0,cos(phi),-sin(phi)],[0,sin(phi),cos(phi)]])
+	R2 = np.array([[cos(-theta), 0, sin(-theta)],[0,1,0],[-sin(-theta),0,cos(-theta)]])
 	
 	# apply inverse matrices in the reverse order
-	return np.array(R2.I * R1.I * np.matrix(input_vec_col))
+	return np.linalg.inv(R2) @ np.linalg.inv(R1) @ _to_2d(input_vec_col)
 
 def rotate_around_z(input_vec,phi):
 	"""
@@ -85,10 +97,9 @@ def rotate_around_z(input_vec,phi):
 	input_vec_col = np.array([input_vec]).T # note - need the extra []'s around input_vec!
 	
 	# rotation around the z-axis (rotation in the xy plane)
-	R1 = np.matrix([[cos(phi),-sin(phi),0],[sin(phi),cos(phi),0],[0,0,1]])
+	R1 = np.array([[cos(phi),-sin(phi),0],[sin(phi),cos(phi),0],[0,0,1]])
 	
-	#print np.dot(R1,np.matrix(input_vec_col))
-	return np.array(R1 * np.matrix(input_vec_col))
+	return R1 @ _to_2d(input_vec_col)
 
 def rotate_around_z2(input_vec,phi):
 	"""
@@ -106,74 +117,3 @@ def rotate_around_z2(input_vec,phi):
 	#print np.dot(R1,np.matrix(input_vec_col))
 	return np.array(R1 @ input_vec_col) #Return rotated vectors as a stacked array
 		
-def test_forward_rotn():	
-	""" Testing ... """
-
-# field along Z
-	theta = 0
-	phi = 0
-	
-	print('B-Field along Z')
-	
-	# X-axis expressed in x',y',z' coords
-	X_new, test = rotate_foward([[1],[0],[0]], phi, theta, True)
-	print(('This should be (0,0,1) by definition... \n',test))
-	print(('X_new: \n',X_new))
-	# Y-axis expressed in x',y',z' coords
-	Y_new, test = rotate_foward([[0],[1],[0]], phi, theta, True)
-	print(('Y_new: \n',Y_new))
-	# Z-axis expressed in x',y',z' coords
-	Z_new, test = rotate_foward([[0],[0],[1]], phi, theta, True)
-	print(('Z_new: \n',Z_new))
-
-# field along Y
-	theta = 0
-	phi = np.pi/2
-	
-	print('\n\nB-Field along Y')
-
-	# X-axis expressed in x',y',z' coords
-	X_new, test = rotate_foward([[1],[0],[0]], phi, theta, True)
-	print(('This should be (0,0,1) by definition... \n',test))
-	print(('X_new: \n',X_new))
-	# Y-axis expressed in x',y',z' coords
-	Y_new, test = rotate_foward([[0],[1],[0]], phi, theta, True)
-	print(('Y_new: \n',Y_new))
-	# Z-axis expressed in x',y',z' coords
-	Z_new, test = rotate_foward([[0],[0],[1]], phi, theta, True)
-	print(('Z_new: \n',Z_new))
-
-# field along X
-	theta = np.pi/2
-	phi = 0
-	
-	print('\n\nB-Field along X')
-
-	# X-axis expressed in x',y',z' coords
-	X_new, test = rotate_foward([[1],[0],[0]], phi, theta, True)
-	print(('This should be (0,0,1) by definition... \n',test))
-	print(('X_new: \n',X_new))
-	# Y-axis expressed in x',y',z' coords
-	Y_new, test = rotate_foward([[0],[1],[0]], phi, theta, True)
-	print(('Y_new: \n',Y_new))
-	# Z-axis expressed in x',y',z' coords
-	Z_new, test = rotate_foward([[0],[0],[1]], phi, theta, True)
-	print(('Z_new: \n',Z_new))
-
-def test_reverse_rotn():
-	""" Testing reverse rotation ... """
-	
-	lab_frame_E = np.matrix([[0],[1],[0]])
-	phi = np.random.random()*np.pi
-	theta = np.random.random()*2*np.pi
-	
-	print('Lab frame input: ')
-	print(lab_frame_E)
-	
-	E_new = rotate_foward(lab_frame_E, phi, theta)
-	print('Field: ')
-	print(E_new)
-	
-	E_original = rotate_back(E_new,phi,theta)
-	print('Rotated back:')
-	print(E_original)

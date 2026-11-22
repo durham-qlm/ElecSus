@@ -1,3 +1,25 @@
 # ignore python compiled files & windows thumbnail files
 *.pyc
+__pycache__/
 Thumbs.db
+.DS_Store
+
+# notebook and test caches
+.ipynb_checkpoints/
+.pytest_cache/
+
+# virtual environment
+.venv/
+
+# validator output (python -m elecsus.validate writes overlay figures here)
+elecsus_validation/
+
+# figures that elecsus/tests/briscoe_2025_theory_repro.py writes when run as a script
+elecsus/tests/briscoe2025_validation.pdf
+elecsus/tests/briscoe_fig*_repro.pdf
+
+# packaging build artefacts (metadata lives in pyproject.toml)
+*.egg-info/
+build/
+dist/
+

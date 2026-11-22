@@ -1,5 +1,5 @@
-# Copyright 2014-2018 M. A. Zentile, J. Keaveney, L. Weller, D. Whiting,
-# C. S. Adams and I. G. Hughes.
+# Copyright 2014-2026 M. A. Zentile, J. Keaveney, L. Weller, D. Whiting,
+# C. S. Adams, I. G. Hughes and S. A. Wrathmall.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,51 +18,70 @@ Module containing functions to calculate the spectra
 
 Constructs the electric susceptibility and then returns
 the spectrum requested
-
-Last updated 2018-07-12 MAZ
 """
 # py 2.7 compatibility
-from __future__ import (division, print_function, absolute_import)
 
 from numpy import zeros,sqrt,pi,dot,exp,sin,cos,array,amax,arange,concatenate,argmin,matmul
 import numpy as np
 from scipy.special import wofz
 from scipy.interpolate import interp1d
 
-import os
-import sys
-import inspect
-cmd_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]))
-if cmd_folder not in sys.path:
-    sys.path.insert(0, cmd_folder)
 
-from FundamentalConstants import *
-from numberDensityEqs import *
+from .FundamentalConstants import *
+from .numberDensityEqs import *
 
-import EigenSystem as ES
-import AtomConstants as AC
-import RotationMatrices as RM
-import BasisChanger as BC
-import JonesMatrices as JM
-import solve_dielectric as SD
+from . import EigenSystem as ES
+from . import AtomConstants as AC
+from . import RotationMatrices as RM
+from . import BasisChanger as BC
+from . import JonesMatrices as JM
+from . import solve_dielectric as SD
+from .param_validation import BUFFER_TEMP_FILL_DEFAULT, validate_p_dict
+from .param_validation import warn as _warn   # attributed to the user's line
 
 # direct testing
-import matplotlib.pyplot as plt
 
 # Default values for parameters
 p_dict_defaults = {	'Elem':'Rb', 'Dline':'D2', 
 							'lcell':75e-3,'Bfield':0., 'T':20., 
 							'GammaBuf':0., 'shift':0.,
-							# Polarisation of light
-							'theta0':0., 'Pol':50., 
-							# B-field angle w.r.t. light k-vector
+							# B-field angle w.r.t. the +z axis (the forward light's direction)
 							'Btheta':0, 'Bphi':0,
-							'Constrain':True, 'DoppTemp':20.,
+							# [ES4 FIX] DoppTemp None, or not given, is T (it was 20 C)
+							'Constrain':True, 'DoppTemp':None,
 							'rb85frac':72.17, 'K40frac':0.01, 'K41frac':6.73,
-							'BoltzmannFactor':True}
+							'BoltzmannFactor':True,
+							# [ES4] non-orthogonal propagation switch and window refractive index (Briscoe et al. 2025).
+							# n_window defaults to None (no windows): it used to default to 1.51, which
+							# coupled two independent things -- switching use_non_orthogonal on then also
+							# switched Fresnel window losses on, dropping absolute S0 by 15.5% far from
+							# resonance, while the orthogonal path ignores n_window entirely. The two
+							# solvers now agree on absolute transmission and windows are opt-in.
+							# [ES4 MOD] use_non_orthogonal defaults to True. The
+							# orthogonal path (ES3's, kept for compatibility as False) is exact
+							# only in Faraday and Voigt geometry: in oblique fields it is off by
+							# up to ~0.5 in S0 (Rb D2, 2 mm, 120 C, 239 G, Btheta = 80 deg).
+							'use_non_orthogonal':True, 'n_window':None}
+
+# [ES4 FIX] Field components in the frame of a reversed pass
+# (wavevector_dirn = -1): turning by pi about x reverses y and z. Applying it
+# twice is the identity, so the same factor takes the field in and back out.
+_REVERSED_FRAME = np.array([[1.], [-1.], [-1.]])
+
+# [ES4 FIX] ES3 truncated each transition frequency to whole MHz.
+# ES4 keeps the exact value. Set this to True only to reproduce ES3's output
+# exactly: the ES3-equivalence tests (test_es3_golden and the published-figure
+# anchors) do, so that they still check everything else to ~1e-9.
+_ES3_WHOLE_MHZ_LINES = False
+
+# [ES4 FIX] ES3 added 273.16 to the temperature in C for the
+# Boltzmann populations and 273.15 everywhere else. ES4 uses 273.15 for both
+# (the populations move by ~1e-8). Set this to 273.16 only to reproduce ES3's
+# output to ~1e-9: the ES3 golden tests do.
+_KELVIN_BOLTZMANN = 273.15
 
 def FreqStren(groundLevels,excitedLevels,groundDim,
-			  excitedDim,Dline,hand,BoltzmannFactor=True,T=293.16):
+			  excitedDim,Dline,hand,BoltzmannFactor=True,T=293.15):
 	""" 
 	Calculate transition frequencies and strengths by taking dot
 	products of relevant parts of the ground / excited state eigenvectors 
@@ -80,14 +99,19 @@ def FreqStren(groundLevels,excitedLevels,groundDim,
 		#print BoltzDist
 		BoltzDist = BoltzDist/BoltzDist.sum() # Normalised
 
-	# select correct columns of matrix corresponding to delta mL = -1, 0, +1
-	if hand=='Right':
+	# select correct columns of matrix corresponding to delta mL = +1, 0, -1.
+	# (Block order verified from the lz-operator basis: the excited manifold is
+	# ordered mL = +1, 0, -1, so 'Right' picks the delta m = +1 (sigma-plus)
+	# manifold and 'Left' the delta m = -1 (sigma-minus) manifold. The 'Left'/
+	# 'Right' hand labels are the circular-polarisation names, NOT the sigma
+	# labels -- see calc_chi and the naming caveat in output_list().)
+	if hand=='Right':          # delta m = +1  ->  sigma-plus manifold
 		bottom = 1
 		top = groundDim + 1
-	elif hand=='Z':
+	elif hand=='Z':            # delta m =  0  ->  pi
 		bottom = groundDim + 1
 		top = 2*groundDim + 1
-	elif hand=='Left':
+	elif hand=='Left':         # delta m = -1  ->  sigma-minus manifold
 		bottom = 2*groundDim+1
 		top = excitedDim+1
 
@@ -104,8 +128,15 @@ def FreqStren(groundLevels,excitedLevels,groundDim,
 			cleb = dot(groundLevels[gg][1:],excitedLevels[ee][bottom:top]).real
 			cleb2 = cleb*cleb
 			if cleb2 > 0.0005: #If negligable don't calculate.
-				transitionFrequency[transNo] = int((-groundLevels[gg][0].real
-											  +excitedLevels[ee][0].real))
+				# [ES4 FIX] ES3 truncated this to whole MHz
+				# with int(), which put each line up to 1 MHz too close to
+				# the line centre and made the spectrum a staircase in B:
+				# a fit's finite-difference Jacobian then missed the line
+				# shift, and ML fits of Bfield stalled near their start.
+				frequency = (-groundLevels[gg][0].real
+							 +excitedLevels[ee][0].real)
+				transitionFrequency[transNo] = (int(frequency) if _ES3_WHOLE_MHZ_LINES
+												else frequency)
 				# We choose to perform the ground manifold reduction (see
 				# equation (4) in manual) here for convenience.
 				
@@ -167,6 +198,10 @@ def calc_chi(X, p_dict,verbose=False):
 	"""
 	Computes the complex susceptibility for sigma plus/minus and pi transitions as a 1D array
 
+	Returns (ChiPlus, ChiMinus, ChiZ): the sigma+ (delta m = +1), sigma- (delta m = -1)
+	and pi (delta m = 0) susceptibilities. [ES4 FIX] ES3, and the 4.0.0
+	alphas, returned the sigma- manifold first, under the name ChiPlus.
+
 	Arguments:
 	
 		X: 		Detuning axis (float, list, or numpy array) in MHz
@@ -181,13 +216,22 @@ def calc_chi(X, p_dict,verbose=False):
 			
 			# Experimental parameters
 			Bfield	 			float			Gauss	Magnitude of the applied magnetic field
-			T		 			float			Celsius	Temperature used to calculate atomic number density
-			GammaBuf   	float			MHz		Extra lorentzian broadening (usually from buffer gas 
-															but can be any extra homogeneous broadening)
-			shift	  			float			MHz		A global frequency shift of the atomic resonance frequencies
+			T		 			float			Celsius	Temperature used to calculate atomic number density; with
+															Constrain=True (the default), also the temperature of the
+															vapour in the beam (see DoppTemp)
+			GammaBuf   	float			MHz		Extra Lorentzian broadening (FWHM, MHz), added to the
+															natural linewidth: the static alternative to the
+															buffer-gas model, or any other homogeneous broadening.
+															Replaced by the model's broadening when BufferGas is set
+															and BufferPressure > 0 (with a warning if it is not 0).
+			shift	  			float			MHz		Global frequency shift of all resonance lines (MHz).
+															[ES4 MOD] With the buffer-gas model on, its pressure
+															shift is added to this one (it used to replace it).
 
-			DoppTemp   	float			Celsius	Temperature linked to the Doppler width (used for
-															independent Doppler width and number density)
+			DoppTemp   	float			Celsius	Temperature of the vapour in the beam (the cell body, when a
+															colder stem sets T): the Doppler width, and the buffer-gas
+															model's broadening and shift. Used only with
+															Constrain=False; not given, it is T
 			Constrain  		bool			--			If True, overides the DoppTemp value and sets it to T
 
 			# Elemental abundancies, where applicable
@@ -196,8 +240,6 @@ def calc_chi(X, p_dict,verbose=False):
 			K41frac			float			%			percentage of potassium-41 atoms
 			
 			lcell	  			float			m			length of the vapour cell
-			theta0	 		float			degrees	Linear polarisation angle w.r.t. to the x-axis
-			Pol				float			%			Percentage of probe beam that drives sigma minus (50% = linear polarisation)
 			
 			NOTE: If keys are missing from p_dict, default values contained in p_dict_defaults will be loaded.
 			
@@ -233,14 +275,57 @@ def calc_chi(X, p_dict,verbose=False):
 		Constrain = p_dict['Constrain']
 	else:
 		Constrain = p_dict_defaults['Constrain']
+
+	# [ES4 FIX] The temperature of the vapour in the beam, which sets
+	# the Doppler width and the buffer-gas model: T, unless Constrain=False gives
+	# the cell body its own DoppTemp (T then being the stem's, which sets the
+	# number density). A DoppTemp not given (or None) is T: it used to be 20 C, so
+	# Constrain=False without DoppTemp put the Doppler width at 20 C whatever T was.
+	if Constrain or (p_dict.get('DoppTemp') is None):
+		DoppTemp = T
+	else:
+		DoppTemp = p_dict['DoppTemp']
+
+	# [ES4 NEW] Dynamic buffer gas model, used when 'BufferGas' is set: the
+	# temperature-dependent broadening and pressure shift of the Pitz 2014 model
+	# (see elecsus/libs/BufferGasData.py). Its broadening replaces GammaBuf, and
+	# its shift is added to shift. To use the static model, omit 'BufferGas'
+	# from the parameter dictionary or set it to None.
+	# [ES4 FIX] It is evaluated at DoppTemp, the temperature of the
+	# gas the light passes through, where the collisions happen. With
+	# Constrain=True it is T.
+	if p_dict.get('BufferGas') is not None:
+		from elecsus.libs.BufferGasData import get_buffer_broadening_and_shift
+		_bg   = p_dict['BufferGas']
+		_bg_P = p_dict.get('BufferPressure', 0.0)
+		_bg_Tf = p_dict.get('BufferTemp_fill', BUFFER_TEMP_FILL_DEFAULT)
+		if _bg_P <= 0.0:
+			_warn(
+				f"BufferGas='{_bg}' is set but BufferPressure={_bg_P} Torr. "
+				"Set 'BufferPressure' to the fill pressure in Torr.")
+		else:
+			_gamma_phys, _shift_phys = get_buffer_broadening_and_shift(
+				Elem, Dline, _bg, _bg_P, _bg_Tf, DoppTemp + 273.15)
+			if _gamma_phys is not None:
+				if GammaBuf != 0.0:
+					_warn(
+						f"BufferGas model active: GammaBuf={GammaBuf} MHz is overridden "
+						f"by the Pitz model value ({_gamma_phys:.2f} MHz). "
+						"Remove GammaBuf from your parameter dict to suppress this warning.")
+				GammaBuf = _gamma_phys
+				# [ES4 MOD] shift is an offset of the frequency axis (the laser's
+				# calibration, say), which a fit may need on top of the pressure
+				# shift. It was overridden, with a warning.
+				shift    = shift + _shift_phys
+			else:
+				_warn(
+					f"No buffer gas data for ({Elem}, {Dline}, '{_bg}'). "
+					"Falling back to static GammaBuf/shift.")
+
 	if 'rb85frac' in list(p_dict.keys()):
 		rb85frac = p_dict['rb85frac']
 	else:
 		rb85frac = p_dict_defaults['rb85frac']
-	if 'DoppTemp' in list(p_dict.keys()):
-		DoppTemp = p_dict['DoppTemp']
-	else:
-		DoppTemp = p_dict_defaults['DoppTemp']
 	if 'K40frac' in list(p_dict.keys()):
 		K40frac = p_dict['K40frac']
 	else:
@@ -280,21 +365,21 @@ def calc_chi(X, p_dict,verbose=False):
 													Rb85_ES.groundManifold,
 													Rb85_ES.excitedManifold,
 													Rb85_ES.ds,Rb85_ES.dp,
-													Dline,'Left',BoltzmannFactor,T+273.16)		  
+													Dline,'Left',BoltzmannFactor,T+_KELVIN_BOLTZMANN)		  
 
 			# Rb-85 allowed transitions for light driving sigma plus
 			renergy85, rstrength85, rtransno85 = FreqStren(
 													Rb85_ES.groundManifold,
 													Rb85_ES.excitedManifold,
 													Rb85_ES.ds,Rb85_ES.dp,
-													Dline,'Right',BoltzmannFactor,T+273.16)
+													Dline,'Right',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 			
 			# Rb-85 allowed transitions for light driving pi
 			zenergy85, zstrength85, ztransno85 = FreqStren(
 													Rb85_ES.groundManifold,
 													Rb85_ES.excitedManifold,
 													Rb85_ES.ds,Rb85_ES.dp,
-													Dline,'Z',BoltzmannFactor,T+273.16)
+													Dline,'Z',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 			
 
 		if rb87frac!=0.0:
@@ -306,21 +391,21 @@ def calc_chi(X, p_dict,verbose=False):
 													Rb87_ES.groundManifold,
 													Rb87_ES.excitedManifold,
 													Rb87_ES.ds,Rb87_ES.dp,
-													Dline,'Left',BoltzmannFactor,T+273.16)
+													Dline,'Left',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 
 			# Rb-87 allowed transitions for light driving sigma plus
 			renergy87, rstrength87, rtransno87 = FreqStren(
 													Rb87_ES.groundManifold,
 													Rb87_ES.excitedManifold,
 													Rb87_ES.ds,Rb87_ES.dp,
-													Dline,'Right',BoltzmannFactor,T+273.16)
+													Dline,'Right',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 
 			# Rb-87 allowed transitions for light driving sigma plus
 			zenergy87, zstrength87, ztransno87 = FreqStren(
 													Rb87_ES.groundManifold,
 													Rb87_ES.excitedManifold,
 													Rb87_ES.ds,Rb87_ES.dp,
-													Dline,'Z',BoltzmannFactor,T+273.16)
+													Dline,'Z',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 													
 			
 													
@@ -346,15 +431,15 @@ def calc_chi(X, p_dict,verbose=False):
 		lenergy, lstrength, ltransno = FreqStren(Cs_ES.groundManifold,
 												 Cs_ES.excitedManifold,
 												 Cs_ES.ds,Cs_ES.dp,Dline,
-												 'Left',BoltzmannFactor,T+273.16)
+												 'Left',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 		renergy, rstrength, rtransno = FreqStren(Cs_ES.groundManifold,
 												 Cs_ES.excitedManifold,
 												 Cs_ES.ds,Cs_ES.dp,Dline,
-												 'Right',BoltzmannFactor,T+273.16)		
+												 'Right',BoltzmannFactor,T+_KELVIN_BOLTZMANN)		
 		zenergy, zstrength, ztransno = FreqStren(Cs_ES.groundManifold,
 												 Cs_ES.excitedManifold,
 												 Cs_ES.ds,Cs_ES.dp,Dline,
-												 'Z',BoltzmannFactor,T+273.16)
+												 'Z',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 
 		if Dline=='D1':
 			transitionConst = AC.CsD1Transition
@@ -370,15 +455,15 @@ def calc_chi(X, p_dict,verbose=False):
 		lenergy, lstrength, ltransno = FreqStren(Na_ES.groundManifold,
 												 Na_ES.excitedManifold,
 												 Na_ES.ds,Na_ES.dp,Dline,
-												 'Left',BoltzmannFactor,T+273.16)
+												 'Left',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 		renergy, rstrength, rtransno = FreqStren(Na_ES.groundManifold,
 												 Na_ES.excitedManifold,
 												 Na_ES.ds,Na_ES.dp,Dline,
-												 'Right',BoltzmannFactor,T+273.16)
+												 'Right',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 		zenergy, zstrength, ztransno = FreqStren(Na_ES.groundManifold,
 												 Na_ES.excitedManifold,
 												 Na_ES.ds,Na_ES.dp,Dline,
-												 'Z',BoltzmannFactor,T+273.16)												 
+												 'Z',BoltzmannFactor,T+_KELVIN_BOLTZMANN)												 
 		if Dline=='D1':
 			transitionConst = AC.NaD1Transition
 		elif Dline=='D2':
@@ -396,16 +481,16 @@ def calc_chi(X, p_dict,verbose=False):
 													K39_ES.groundManifold,
 													K39_ES.excitedManifold,
 													K39_ES.ds,K39_ES.dp,Dline,
-													'Left',BoltzmannFactor,T+273.16)
+													'Left',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 			renergy39, rstrength39, rtransno39 = FreqStren(
 													K39_ES.groundManifold,
 													K39_ES.excitedManifold,
 													K39_ES.ds,K39_ES.dp,Dline,
-													'Right',BoltzmannFactor,T+273.16)
+													'Right',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 			zenergy39, zstrength39, ztransno39 = FreqStren(K39_ES.groundManifold,
 													K39_ES.excitedManifold,
 													K39_ES.ds,K39_ES.dp,Dline,
-													'Z',BoltzmannFactor,T+273.16)
+													'Z',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 		if K40frac!=0.0:
 			K40atom = AC.K40
 			K40_ES = ES.Hamiltonian('K40',Dline,1.0,Bfield)
@@ -414,16 +499,16 @@ def calc_chi(X, p_dict,verbose=False):
 													K40_ES.groundManifold,
 													K40_ES.excitedManifold,
 													K40_ES.ds,K40_ES.dp,Dline,
-													'Left',BoltzmannFactor,T+273.16)
+													'Left',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 			renergy40, rstrength40, rtransno40 = FreqStren(
 													K40_ES.groundManifold,
 													K40_ES.excitedManifold,
 													K40_ES.ds,K40_ES.dp,Dline,
-													'Right',BoltzmannFactor,T+273.16)
+													'Right',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 			zenergy40, zstrength40, ztransno40 = FreqStren(K40_ES.groundManifold,
 													K40_ES.excitedManifold,
 													K40_ES.ds,K40_ES.dp,Dline,
-													'Z',BoltzmannFactor,T+273.16)
+													'Z',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 		if K41frac!=0.0:
 			K41atom = AC.K41
 			K41_ES = ES.Hamiltonian('K41',Dline,1.0,Bfield)
@@ -432,16 +517,16 @@ def calc_chi(X, p_dict,verbose=False):
 													K41_ES.groundManifold,
 													K41_ES.excitedManifold,
 													K41_ES.ds,K41_ES.dp,Dline,
-													'Left',BoltzmannFactor,T+273.16)
+													'Left',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 			renergy41, rstrength41, rtransno41 = FreqStren(
 													K41_ES.groundManifold,
 													K41_ES.excitedManifold,
 													K41_ES.ds,K41_ES.dp,Dline,
-													'Right',BoltzmannFactor,T+273.16)
+													'Right',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 			zenergy41, zstrength41, ztransno41 = FreqStren(K41_ES.groundManifold,
 													K41_ES.excitedManifold,
 													K41_ES.ds,K41_ES.dp,Dline,
-													'Z',BoltzmannFactor,T+273.16)
+													'Z',BoltzmannFactor,T+_KELVIN_BOLTZMANN)
 		if Dline=='D1':
 			transitionConst = AC.KD1Transition
 		elif Dline=='D2':
@@ -458,8 +543,7 @@ def calc_chi(X, p_dict,verbose=False):
 			AllEnergyLevels = concatenate((lenergy41,renergy41,zenergy41))
 
 #Calculate Voigt
-	if Constrain:
-		 DoppTemp = T #Set doppler temperature to the number density temperature
+	# (DoppTemp was resolved against Constrain above)
 	T += 273.15
 	DoppTemp += 273.15
 
@@ -587,17 +671,210 @@ def calc_chi(X, p_dict,verbose=False):
 		ChiImZ = prefactor*(K39frac*zab39+K40frac*zab40+K41frac*zab41)
 
 	# Reconstruct total susceptibility and index of refraction
-	totalChiPlus = ChiRealLeft + 1.j*ChiImLeft
-	totalChiMinus = ChiRealRight + 1.j*ChiImRight
+	# [ES4 FIX] The 'Right' transitions are the sigma+ (delta m = +1)
+	# manifold, blue-shifted at high field, and the 'Left' ones sigma-. ChiPlus
+	# was the 'Left' (sigma-) sum, so a [1,+i] field, which drives sigma+ about
+	# B, was given the sigma- susceptibility: the code modelled B reversed.
+	totalChiPlus = ChiRealRight + 1.j*ChiImRight
+	totalChiMinus = ChiRealLeft + 1.j*ChiImLeft
 	totalChiZ = ChiRealZ + 1.j*ChiImZ
 	
 	return totalChiPlus, totalChiMinus, totalChiZ
 
-def get_Efield(X, E_in, Chi, p_dict, verbose=False):
+# [ES4 BEGIN] propagate_non_orthogonal — biorthogonal mode propagation (Briscoe et al. 2025)
+def propagate_non_orthogonal(E_xz, RM_ary, n1, n2, wavenumber, lcell, n_window=None):
+	"""
+	Non-orthogonal mode propagation following Briscoe et al.,
+	Opt. Express 33, 32099-32114 (2025).
+
+	Solves E_inc = c1*u1 + c2*u2 via linear system instead of assuming
+	orthogonal eigenmodes.
+
+	Arguments:
+		E_xz:       (N, 3, 1) input E-field vectors (rotated frame)
+		RM_ary:     (3, 3, N) eigenvector array from solve_diel (eigenvectors as rows)
+		n1, n2:     (N,) complex refractive indices for the two eigenmodes
+		wavenumber: scalar, wavevector magnitude
+		lcell:      scalar, cell length in metres
+		n_window:   refractive index of cell windows (None, the default, models a
+		            windowless cell; 1.51 is typical for borosilicate glass).
+
+		            When set, a 4-interface Fresnel model is applied at normal
+		            incidence, assuming outer medium is air (n=1):
+
+		              air ──[t_outer_in]──> glass ──[t_inner_in]──> vapour
+		                                          <── propagate ──>
+		              air <──[t_outer_out]── glass <──[t_inner_out]── vapour
+
+		            Outer interfaces (air ↔ glass): scalar, frequency-independent.
+		              t_outer_in  = 2 / (1 + n_window)
+		              t_outer_out = 2·n_window / (n_window + 1)
+
+		            Inner interfaces (glass ↔ vapour): per eigenmode,
+		            frequency-dependent near resonance.
+		              t_inner_in  = 2·n_window / (n_window + n_i)
+		              t_inner_out = 2·n_i      / (n_i + n_window)
+
+		            The combined window factor per mode at normal incidence is:
+		              T_window,i = |t_outer_in · t_inner_in · t_inner_out · t_outer_out|²
+		            which equals the physical intensity transmission (T = 4n_a n_b/(n_a+n_b)²
+		            at each interface) because the input and output media are both air.
+
+		            For n_window=1.51 far from resonance (n_i ≈ 1):
+		              T_window ≈ 0.959⁴ ≈ 0.845  (~15% total reflection loss)
+
+		            The outer surfaces contribute a constant factor that cancels in
+		            spectra normalised to a reference measurement, but is required
+		            for rigorous absolute transmission modelling.
+
+		            Set to None to disable all Fresnel corrections — this reproduces
+		            the bare Briscoe et al. formalism (Eq. 9) and is appropriate for
+		            theory-only comparisons or when windows are not modelled.
+
+		            Note: the legacy orthogonal propagation path (use_non_orthogonal=False)
+		            contains no window correction; that path is kept as ES3 computed it.
+
+	Returns:
+		E_out: (N, 3, 1) output E-field vectors, transmitted into air: E_z = 0
+	"""
+	N = len(n1)
+
+	# Extract transverse (x,y) components of eigenvectors
+	# RM_ary[0,:,i] = eigenvector 1 at point i
+	# RM_ary[1,:,i] = eigenvector 2 at point i
+	u1_xy = RM_ary[0, :2, :].T  # shape (N, 2)
+	u2_xy = RM_ary[1, :2, :].T  # shape (N, 2)
+
+	# Build 2x2 basis matrices: M[i] = [[u1_x, u2_x], [u1_y, u2_y]]
+	M = np.zeros((N, 2, 2), dtype='complex')
+	M[:, 0, 0] = u1_xy[:, 0]
+	M[:, 1, 0] = u1_xy[:, 1]
+	M[:, 0, 1] = u2_xy[:, 0]
+	M[:, 1, 1] = u2_xy[:, 1]
+
+	# Input E-field transverse components
+	E_in_xy = E_xz[:, :2, 0]  # shape (N, 2)
+
+	# Solve for mode amplitudes: M @ c = E_in_xy  (Briscoe et al. Eq. 11)
+	try:
+		c = np.linalg.solve(M, E_in_xy[..., np.newaxis])[..., 0]
+	except np.linalg.LinAlgError:
+		# Fallback for singular matrices near resonances
+		c = np.zeros((N, 2), dtype='complex')
+		for i in range(N):
+			c[i] = np.linalg.lstsq(M[i], E_in_xy[i], rcond=None)[0]
+
+	if n_window is not None:
+		# Outer entrance: air (n=1) → glass — scalar, same for both modes
+		t_outer_in = 2.0 / (1.0 + n_window)
+		# Inner entrance: glass → vapour mode i — per-mode, frequency-dependent
+		t_inner_in = np.column_stack([
+			2.0 * n_window / (n_window + n1),
+			2.0 * n_window / (n_window + n2),
+		])
+		c *= t_outer_in * t_inner_in   # scalar broadcasts over (N, 2) array
+
+	# Propagate through vapour (Briscoe et al. Eq. 9: t(n_i) = exp(i n_i k_0 L))
+	phase = np.column_stack([
+		np.exp(1j * wavenumber * n1 * lcell),
+		np.exp(1j * wavenumber * n2 * lcell),
+	])
+	c *= phase
+
+	if n_window is not None:
+		# Inner exit: vapour mode i → glass — per-mode, frequency-dependent
+		t_inner_out = np.column_stack([
+			2.0 * n1 / (n1 + n_window),
+			2.0 * n2 / (n2 + n_window),
+		])
+		# Outer exit: glass → air — scalar, same for both modes
+		t_outer_out = 2.0 * n_window / (n_window + 1.0)
+		c *= t_inner_out * t_outer_out   # scalar broadcasts over (N, 2) array
+
+	# Reconstruct output E-field
+	# [ES4 FIX] The field leaving the cell is a plane wave along z
+	# in air, so it has no z component: E_x and E_y are continuous across the
+	# exit face (and carry the window factors above), but the modes' E_z,
+	# c1 u1_z + c2 u2_z, exists only inside the anisotropic vapour, where D,
+	# not E, is transverse. It used to be returned, so S0 counted |E_z|^2 and
+	# exceeded Ix + Iy (by up to ~2e-6 of S0 in oblique fields) and a pure
+	# state came out not quite fully polarised.
+	E_out = np.zeros((N, 3, 1), dtype='complex')
+	E_out[:, 0, 0] = c[:, 0] * u1_xy[:, 0] + c[:, 1] * u2_xy[:, 0]  # E_x
+	E_out[:, 1, 0] = c[:, 0] * u1_xy[:, 1] + c[:, 1] * u2_xy[:, 1]  # E_y
+
+	return E_out
+# [ES4 END] propagate_non_orthogonal
+
+
+# [ES4 BEGIN] Poynting-flux transmission for the non-orthogonal path
+def poynting_transmission_non_orthogonal(E_xz, RM_ary, n1, n2, wavenumber, lcell):
+	"""
+	Physical (Poynting-flux) transmission through the vapour for the
+	non-orthogonal propagation path:
+
+	    S0_P = <S_z(L)> / <S_z(0)>,
+	    <S_z(z)> ∝ Re[ Σ_jk c_j(z) c_k*(z) n_k* (m_j · m_k*) ]
+
+	where c_j(z) = c_j exp(i n_j k0 z) and m_j are the transverse eigenvector
+	components. This is the time-averaged z-component of the Poynting vector
+	of the two-mode field, using H_k = (n_k/Z0) ẑ×E_k per mode.
+
+	Rationale: |E|² is not proportional to power flux inside an
+	anisotropic medium, and near mode degeneracies the biorthogonal
+	amplitudes c_j grow without bound. Before the eigenvector fix (Webber) and
+	the transverse E_out, 'S0' could exceed unity by orders of
+	magnitude this way although no energy is created; it is now ≤ 1 in every
+	scan the test suite makes (test_symmetries.py). The Poynting ratio is the
+	physically transported power and satisfies S0_P ≤ 1 for a passive
+	medium (∂<S_z>/∂z = −absorption ≤ 0 for genuine Maxwell solutions, which
+	the two-mode superposition is).
+
+	Window Fresnel factors are NOT included: this is the flux transmission of
+	the bare vapour column (compare n_window=None), so that the passivity
+	bound applies exactly.
+	"""
+	N = len(n1)
+	u1_xy = RM_ary[0, :2, :].T   # (N, 2)
+	u2_xy = RM_ary[1, :2, :].T
+
+	M = np.zeros((N, 2, 2), dtype='complex')
+	M[:, 0, 0] = u1_xy[:, 0]
+	M[:, 1, 0] = u1_xy[:, 1]
+	M[:, 0, 1] = u2_xy[:, 0]
+	M[:, 1, 1] = u2_xy[:, 1]
+
+	E_in_xy = E_xz[:, :2, 0]
+	try:
+		c0 = np.linalg.solve(M, E_in_xy[..., np.newaxis])[..., 0]
+	except np.linalg.LinAlgError:
+		c0 = np.zeros((N, 2), dtype='complex')
+		for i in range(N):
+			c0[i] = np.linalg.lstsq(M[i], E_in_xy[i], rcond=None)[0]
+
+	cL = c0 * np.column_stack([
+		np.exp(1j * wavenumber * n1 * lcell),
+		np.exp(1j * wavenumber * n2 * lcell),
+	])
+
+	n_arr = np.column_stack([n1, n2])                 # (N, 2)
+	m = np.stack([u1_xy, u2_xy], axis=1)              # (N, mode j, xy)
+	G = np.einsum('njx,nkx->njk', m, m.conj())        # m_j · m_k*   (N, 2, 2)
+
+	def _flux(c):
+		return np.real(np.einsum('nj,nk,nk,njk->n', c, c.conj(), n_arr.conj(), G))
+
+	# [ES4 FIX] NaN where no light enters (cell 2 of a cascade behind an opaque
+	# cell 1), as the plain division gave, but without its RuntimeWarning
+	return _over_input(_flux(cL), _flux(c0))
+# [ES4 END] poynting_transmission_non_orthogonal
+
+
+def get_Efield(X, E_in, Chi, p_dict, verbose=False, return_poynting=False):
 	""" 
 	Most general form of calculation - return the electric field vector E_out. 
 	Can use Jones matrices to calculate all other experimental spectra from 
-	this, as in the get_spectra2() method
+	this, as get_spectra() does
 	
 	Electric field is in the lab frame, in the X/Y/Z basis:
 		- light propagation is along the Z axis, X is horizontal and Y is vertical dimension
@@ -624,7 +901,8 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 						a non-uniform magnetic field
 						If E_x/y/z are single (complex) values, then the input polarisation is
 						assumed to be independent of the detuning.
-		Chi:		(3,len(X)) array of susceptibility values, for sigma+, sigma-, and pi transitions
+		Chi:		(3,len(X)) array of susceptibility values, for sigma+, sigma-, and pi transitions,
+						as calc_chi returns them
 		p_dict:	Parameter dictionary - see get_spectra() docstring for details.
 	
 	Returns:
@@ -684,78 +962,206 @@ def get_Efield(X, E_in, Chi, p_dict, verbose=False):
 	else:
 		Bphi = p_dict_defaults['Bphi']
 		
+	# [ES4] read non-orthogonal propagation parameters from p_dict
+	use_non_orthogonal = p_dict.get('use_non_orthogonal',
+		p_dict_defaults['use_non_orthogonal'])
+	n_window = p_dict.get('n_window',
+		p_dict_defaults.get('n_window', None))
+
 	# direction of wavevector (for double-pass geometry simulations)
 	if 'wavevector_dirn' in list(p_dict.keys()):
 		wavevector_dirn = p_dict['wavevector_dirn']
 	else:
 		wavevector_dirn = 1
 	
-	if wavevector_dirn == -1:
-		# light propagating backwards, but always calculate assuming light travelling in the +z direction,
-		# therefore flip B-field 180 degrees around (can use either theta or phi for this)
-		Btheta += np.pi
-	
+	# [ES4 FIX] Light travelling along -z is solved as a forward
+	# problem in the frame turned by pi about the x-axis, (x, y, z) ->
+	# (x, -y, -z), where it travels along +z. B is given in the lab frame for
+	# both passes, so in that frame it has polar angle pi - Btheta and azimuth
+	# -Bphi, and the field's y and z components change sign on the way in and
+	# again on the way out. The wavenumber stays positive. ES3 instead turned
+	# B through pi and made the wavenumber negative: the Faraday rotation came
+	# out right, but exp(i n k L) then grew wherever the vapour absorbs, and
+	# the transmission reached ~1e62.
+	reverse = (wavevector_dirn == -1)
+	if reverse:
+		Btheta = np.pi - Btheta
+		Bphi = -Bphi
+		E_in = E_in * _REVERSED_FRAME
+
 	# get wavenumber
 	transition = AC.transitions[Elem+Dline]
-	wavenumber = transition.wavevectorMagnitude * wavevector_dirn
+	wavenumber = transition.wavevectorMagnitude
 
 	# get susceptibility (already calculated, input to this method)
 	ChiPlus, ChiMinus, ChiZ = Chi
 
 	# Rotate initial Electric field so that B field lies in x-z plane
 	# (Effective polarisation rotation)
-	E_xz = RM.rotate_around_z(E_in.T,Bphi)
+	# [ES4 FIX] B has azimuth Bphi, measured from x towards y, so
+	# the frame turns by -Bphi to bring it into the x-z plane, and back by
+	# +Bphi on the way out. Turning by +Bphi put B at azimuth -Bphi.
+	E_xz = RM.rotate_around_z(E_in.T,-Bphi)
 		
 	# Find eigen-vectors for propagation and create rotation matrix
 	RM_ary, n1, n2 = SD.solve_diel(ChiPlus,ChiMinus,ChiZ,Btheta,Bfield)
 
-	# take conmplex conjugate of rotation matrix
-	RM_ary = RM_ary.conjugate()
-	
-	# propagation matrix
-	PropMat = np.array(
-				[	[exp(1.j*n1*wavenumber*lcell),np.zeros(len(n1)),np.zeros(len(n1))],
-					[np.zeros(len(n1)),exp(1.j*n2*wavenumber*lcell),np.zeros(len(n1))],
-					[np.zeros(len(n1)),np.zeros(len(n1)),np.ones(len(n1))]	])
-	#print 'prop matrix shape:',PropMat.T.shape
-	#print 'prop mat [0]: ', PropMat.T[0]
-	
-	# calcualte output field - a little messy to make it work nicely with array operations
-	# - need to play around with matrix dimensions a bit
-	# Effectively this does this, element-wise: E_out_xz = RotMat.I * PropMat * RotMat * E_xz
-	
+	# Reshape E_xz for array operations
 	E_xz = np.reshape(E_xz.T, (len(X),3,1))
-	
-	# E_out_xz = np.zeros((len(X),3,1),dtype='complex')
-	# E_out = np.zeros_like(E_out_xz)
-	# for i in range(len(X)):
-	# 	#print 'Propagation Matrix:\n',PropMat.T[i]
-	# 	#print 'Rotation matrix:\n',RM_ary.T[i]
-	# 	#inverse rotation matrix
-	# 	RMI_ary = np.matrix(RM_ary.T[i].T).I
-	# 	#print 'Inverse rotation matrix:\n',RMI_ary
-		
-	# 	E_out_xz[i] = RMI_ary * np.matrix(PropMat.T[i]) * np.matrix(RM_ary.T[i].T)*np.matrix(E_xz[i]) 
-	# 	#print 'E out xz i: ',E_out_xz[i].T
-	# 	E_out[i] = RM.rotate_around_z(E_out_xz[i].T[0],-Bphi)
 
-	ary_of_RMI_ary = np.linalg.inv(np.transpose(RM_ary.T,(0,2,1))) #Gives full array of RMI matrices
-	fast_E_out_xz = matmul(matmul(matmul(ary_of_RMI_ary,PropMat.T),np.transpose(RM_ary.T,(0,2,1))),E_xz)
-	fast_E_out = RM.rotate_around_z2(np.transpose(fast_E_out_xz,(0,2,1))[::,0],-Bphi) 
+	# [ES4 BEGIN] branch: non-orthogonal (Briscoe 2025) vs ES3 orthogonal propagation
+	if use_non_orthogonal:
+		# Non-orthogonal mode propagation (Briscoe et al. 2025)
+		# Uses linear system solver instead of matrix inverse for eigenmode projection,
+		# and includes Fresnel transmission at cell windows.
+		E_out_xz = propagate_non_orthogonal(E_xz, RM_ary, n1, n2,
+											 wavenumber, lcell, n_window)
+		fast_E_out = RM.rotate_around_z2(
+			np.transpose(E_out_xz,(0,2,1))[::,0], Bphi)
+		if return_poynting:
+			# [ES4] Poynting-flux transmission: physical power
+			# ratio, bounded by 1 for the passive vapour, unlike |E|²-based
+			# S0 near mode degeneracies.
+			S0_P = poynting_transmission_non_orthogonal(
+				E_xz, RM_ary, n1, n2, wavenumber, lcell)
+	else:
+		if return_poynting:
+			raise ValueError(
+				"S0_P (Poynting-flux transmission) requires "
+				"use_non_orthogonal=True: it is defined for the "
+				"non-orthogonal mode decomposition, where |E|²-based S0 "
+				"can exceed 1 near mode degeneracies.")
+		# Original orthogonal propagation
+		# take complex conjugate of rotation matrix
+		RM_ary = RM_ary.conjugate()
 
-	#print 'E out [0]: ',E_out[0]
-	#print 'E out shape: ',E_out.shape
-	
+		# propagation matrix
+		PropMat = np.array(
+					[	[exp(1.j*n1*wavenumber*lcell),np.zeros(len(n1)),np.zeros(len(n1))],
+						[np.zeros(len(n1)),exp(1.j*n2*wavenumber*lcell),np.zeros(len(n1))],
+						[np.zeros(len(n1)),np.zeros(len(n1)),np.ones(len(n1))]	])
+
+		ary_of_RMI_ary = np.linalg.inv(np.transpose(RM_ary.T,(0,2,1)))
+		fast_E_out_xz = matmul(matmul(matmul(ary_of_RMI_ary,PropMat.T),
+							np.transpose(RM_ary.T,(0,2,1))),E_xz)
+		fast_E_out = RM.rotate_around_z2(
+			np.transpose(fast_E_out_xz,(0,2,1))[::,0], Bphi)
+	# [ES4 END] propagation branch
+
+	E_out = fast_E_out.T[0]
+	if reverse:
+		# [ES4 FIX] back from the reversed-pass frame to the lab
+		E_out = E_out * _REVERSED_FRAME
+
 	## return electric field vector - can then use Jones matrices to do everything else
-	#return E_out.T[0], np.matrix(RM_ary.T[i])
-	return fast_E_out.T[0], np.matrix(RM_ary.T[-1])
+	# [ES4 MOD] np.matrix deprecated; RM_ary is already ndarray. On a reversed
+	# pass it is in the solver's frame (y and z reversed), not the lab frame.
+	if return_poynting:
+		return E_out, RM_ary.T[-1], S0_P
+	return E_out, RM_ary.T[-1]
 
-def get_spectra(X, E_in, p_dict, outputs=None):
+def _over_input(I, I_in):
+	"""
+	I / I_in: an intensity relative to the input intensity I_in (a scalar or
+	an (N,) array).
+
+	[ES4 FIX] Where no light enters the result is NaN, as the plain division
+	gave, but without numpy's 'invalid value' and 'overflow' RuntimeWarnings.
+	'No light' is I_in below the smallest normal float (~2e-308), 0 included:
+	numpy divides a complex number by forming 1/I_in, which overflows there,
+	so the plain division returned 0/0 or 0*inf. Behind a crossed polariser
+	the second cell of calculate_cascade gets no light wherever the first is
+	opaque, and the GUI showed those warnings on its cascade tab. Every other
+	point is divided exactly as before, to the last bit.
+	"""
+	lit = _lit(I_in)
+	out = np.full(np.broadcast(I, I_in).shape, np.nan, dtype=np.result_type(I, I_in))
+	return np.divide(I, I_in, out=out, where=lit)
+
+
+def _lit(I_in):
+	"""
+	True where light enters: the input intensity I_in is at least the smallest
+	normal float (~2e-308). The test _over_input and calculate_cascade share.
+	"""
+	return np.abs(np.asarray(I_in)) >= np.finfo(float).tiny
+
+
+# [ES4] The intensities and Stokes parameters of a field, shared
+# by get_spectra and calculate_cascade's instrument totals. The cascade had its
+# own copy, which kept the 4.0.0 alphas' S3 sign after it was corrected here.
+def field_outputs(E_out, I_in, S0_floor=0.):
+	"""
+	Intensities and fractional Stokes parameters of a (3, N) field E_out,
+	normalised to the input intensity I_in (a scalar or an (N,) array).
+
+	S1, S2 and S3 are divided by S0 where S0 > S0_floor, and are left
+	undivided elsewhere, where |S_i| <= S0 <= S0_floor: 0 to within the floor.
+	S0_floor = 0 guards only a fully opaque point; calculate_cascade passes
+	1e-15, so that the crossed-polariser wings return at most 1e-15 rather
+	than noise.
+	Where no light enters (I_in ~ 0) every output is NaN (see _over_input).
+	S3 = (Ir - Il)/S0 follows Born & Wolf (see get_spectra).
+
+	Returns a dict with S0, S1, S2, S3, Ix, Iy, I_P45, I_M45, Il and Ir, all real.
+	"""
+	# [ES4 MOD] Intensities and Stokes parameters are real by construction
+	# (E . E*), but the sum over a complex field leaves a complex128 dtype with
+	# a ~1e-17 imaginary residue.  Take the real part here, at the point where
+	# each observable is formed, so that every intensity-like output is float64:
+	# a complex dtype propagates a ComplexWarning into user plotting/fitting code
+	# and makes np.max compare lexicographically rather than by magnitude.
+	S0 = _over_input((E_out * E_out.conjugate()).sum(axis=0), I_in).real
+
+	#S1#
+	Ex = JM.HorizPol_xy @ E_out[:2]
+	Ix =  _over_input((Ex * Ex.conjugate()).sum(axis=0), I_in).real
+	Ey =  JM.VertPol_xy @ E_out[:2]
+	Iy =  _over_input((Ey * Ey.conjugate()).sum(axis=0), I_in).real
+
+	#S2#
+	E_P45 =  JM.LPol_P45_xy @ E_out[:2]
+	E_M45 =  JM.LPol_M45_xy @ E_out[:2]
+	I_P45 = _over_input((E_P45 * E_P45.conjugate()).sum(axis=0), I_in).real
+	I_M45 = _over_input((E_M45 * E_M45.conjugate()).sum(axis=0), I_in).real
+
+	#S3#
+	# change to circular basis
+	E_out_lrz = BC.xyz_to_lrz(E_out)
+	El =  JM.CPol_L_lr @ E_out_lrz[:2]
+	Er =  JM.CPol_R_lr @ E_out_lrz[:2]
+	Il = _over_input((El * El.conjugate()).sum(axis=0), I_in).real
+	Ir = _over_input((Er * Er.conjugate()).sum(axis=0), I_in).real
+
+	# [ES4 MOD] S1, S2 and S3 fractional (normalised by S0); ES3 returned Ix - Iy,
+	# I_P45 - I_M45 and Ir - Il (absolute intensity differences, units of input
+	# intensity).  Stokes parameters are dimensionless by definition and must
+	# satisfy S0² ≥ S1² + S2² + S3² (Born & Wolf §1.4).  [ES4] guard only
+	# S0 == 0 (fully opaque) by default; at nonzero S0 the light is still fully
+	# polarised, so the true fractional Stokes ratio must be kept (do not floor S0).
+	safe = np.where(S0 > S0_floor, S0, 1.0)
+	S1 = (Ix - Iy) / safe
+	S2 = (I_P45 - I_M45) / safe
+	# [ES4 FIX] S3 in Born & Wolf's sign again, as in ES3:
+	# S3 = (Ir - Il)/S0, positive when right-circular light dominates. With
+	# fields varying as exp(i(kz - wt)), Il is the [1,+i]/sqrt2 component, whose
+	# field turns anticlockwise for an observer facing the source: left-circular
+	# in Born & Wolf (Sec. 1.4.2), where right means clockwise. The 4.0.0 alphas
+	# returned -(Ir - Il)/S0, citing Born & Wolf for the opposite sign.
+	# Il, Ir and S3 are about the lab +z axis, as E_in and E_out
+	# are: on a reversed pass (wavevector_dirn = -1), S3 > 0 is left-circular
+	# for the returning beam itself.
+	S3 = (Ir - Il) / safe
+	return {'S0': S0, 'S1': S1, 'S2': S2, 'S3': S3, 'Ix': Ix, 'Iy': Iy,
+			'I_P45': I_P45, 'I_M45': I_M45, 'Il': Il, 'Ir': Ir}
+# [ES4 END] field_outputs
+
+
+def get_spectra(X, E_in, p_dict, outputs=None, strict=True):
 	""" 
 	Calls get_Efield() to get Electric field, then use Jones matrices 
 	to calculate experimentally useful quantities.
 	
-	Alias for the get_spectra2 method in libs.spectra.
 	
 	Inputs:
 		detuning_range [ numpy 1D array ] 
@@ -778,12 +1184,19 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 				
 				# Experimental parameters
 				Bfield	 			float			Gauss	Magnitude of the applied magnetic field
-				T		 			float			Celsius	Temperature used to calculate atomic number density
-				GammaBuf   	float			MHz		Extra lorentzian broadening (usually from buffer gas 
-																but can be any extra homogeneous broadening)
-				shift	  			float			MHz		A global frequency shift of the atomic resonance frequencies
-				DoppTemp   	float			Celsius	Temperature linked to the Doppler width (used for
-																independent Doppler width and number density)
+				T		 			float			Celsius	Temperature used to calculate atomic number density; with
+																Constrain=True (the default), also the temperature of the
+																vapour in the beam (see DoppTemp)
+				GammaBuf   	float			MHz		Extra Lorentzian broadening (FWHM, MHz), added to the
+																natural linewidth. Replaced by the buffer-gas model's
+																broadening when BufferGas is set and BufferPressure > 0.
+				shift	  			float			MHz		Global frequency shift of all resonance lines (MHz).
+																With the buffer-gas model on, its pressure shift is
+																added to this one.
+				DoppTemp   	float			Celsius	Temperature of the vapour in the beam (the cell body, when a
+																colder stem sets T): the Doppler width, and the buffer-gas
+																model's broadening and shift. Used only with
+																Constrain=False; not given, it is T
 				Constrain  		bool			--			If True, overides the DoppTemp value and sets it to T
 
 				# Elemental abundancies, where applicable
@@ -792,8 +1205,6 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 				K41frac			float			%			percentage of potassium-41 atoms
 				
 				lcell	  			float			m			length of the vapour cell
-				theta0	 		float			degrees	Linear polarisation angle w.r.t. to the x-axis
-				Pol				float			%			Percentage of probe beam that drives sigma minus (50% = linear polarisation)
 				
 				NOTE: If keys are missing from p_dict, default values contained in p_dict_defaults will be loaded.
 		
@@ -818,6 +1229,16 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 		More examples are available in the /tests/ folder
 	"""
 	
+	# [ES4 NEW] Reject mistyped and unphysical parameters before anything is
+	# computed.  Unknown keys are otherwise ignored in silence, which quietly
+	# disables whichever feature was being asked for (see libs/param_validation.py).
+	validate_p_dict(p_dict, strict=strict)
+
+	# [ES4 FIX] A single detuning is a 1-point axis. The scalar
+	# branch below used to run only after calc_chi had already taken len(X),
+	# and it missed numpy scalars anyway.
+	X = np.atleast_1d(np.asarray(X, dtype=float))
+
 	# get some parameters from p dictionary
 	
 	# need in try/except or equiv.
@@ -837,14 +1258,8 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 		lcell = p_dict['lcell']
 	else:
 		lcell = p_dict_defaults['lcell']
-	if 'theta0' in list(p_dict.keys()):
-		theta0 = p_dict['theta0']
-	else:
-		theta0 = p_dict_defaults['theta0']
-	if 'Pol' in list(p_dict.keys()):
-		Pol = p_dict['Pol']
-	else:
-		Pol = p_dict_defaults['Pol']
+	# [ES4] 'theta0'/'Pol' (ES3-only, no effect) warn from validate_p_dict's
+	# check_keys, which fit_data also runs.
 
 	# get wavenumber
 	transition = AC.transitions[Elem+Dline]
@@ -852,24 +1267,27 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 	wavenumber = transition.wavevectorMagnitude
 	
 	# Calculate Susceptibility
+	# [ES4 FIX] ChiPlus is the sigma+ (delta m = +1) manifold, which
+	# a [1,+i]/sqrt2 field drives when B is along +z, and ChiMinus sigma-. In ES3
+	# and the 4.0.0 alphas they were the other way round, and the code modelled B reversed.
 	ChiPlus, ChiMinus, ChiZ = calc_chi(X, p_dict)
 	Chi = [ChiPlus, ChiMinus, ChiZ]
 	
-	# Complex refractive index
-	nPlus = sqrt(1.0+ChiPlus) #Complex refractive index driving sigma plus transitions
-	nMinus = sqrt(1.0+ChiMinus) #Complex refractive index driving sigma minus transitions
+	# Complex refractive index.
+	nPlus = sqrt(1.0+ChiPlus)    # sigma+: the [1,+i]/sqrt2 mode for B along +z
+	nMinus = sqrt(1.0+ChiMinus)  # sigma-: the [1,-i]/sqrt2 mode for B along +z
 	nZ = sqrt(1.0+ChiZ) # Complex index driving pi transitions
-
-	# convert (if necessary) detuning axis X to np array
-	if type(X) in (int, float, int):
-		X = np.array([X])
-	else:
-		X = np.array(X)
 
 
 	
 	# Calculate E_field
-	E_out, R = get_Efield(X, E_in, Chi, p_dict)
+	# [ES4] S0_P (Poynting-flux transmission) is computed inside
+	# get_Efield where the mode data are available; request it only if asked.
+	if outputs is not None and 'S0_P' in outputs:
+		E_out, R, S0_P = get_Efield(X, E_in, Chi, p_dict, return_poynting=True)
+	else:
+		E_out, R = get_Efield(X, E_in, Chi, p_dict)
+		S0_P = None
 	#print 'Output E field (Z): \n', E_out[2]
 	
 
@@ -881,11 +1299,12 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 			E_in = np.array([np.ones(len(X))*E_in[0],np.ones(len(X))*E_in[1],np.ones(len(X))*E_in[2]])
 	
 	# normalised by input intensity
-	I_in = (E_in * E_in.conjugate()).sum(axis=0)
+	I_in = (E_in * E_in.conjugate()).sum(axis=0).real
 	
-	S0 = (E_out * E_out.conjugate()).sum(axis=0) / I_in
-	
-	Iz = (E_out[2] * E_out[2].conjugate()).real / I_in
+	# Intensities and fractional Stokes parameters (shared with
+	# calculate_cascade's instrument totals)
+	fo = field_outputs(E_out, I_in)
+	S0 = fo['S0']
 	
 	Transmission = S0
 	
@@ -897,49 +1316,61 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 	# Faraday rotation angle (including incident linear polarisation angle)
 	phiPlus = wavenumber*nPlus.real*lcell
 	phiMinus = wavenumber*nMinus.real*lcell
-	phi = (phiMinus-phiPlus)/2.0 
+	# [ES4 FIX] The rotation from x towards y is
+	# (k L / 2) Re(n_[1,-i] - n_[1,+i]). With B along +z, [1,+i] is sigma+ and
+	# that is (phiMinus - phiPlus)/2; with B along -z (Btheta = pi, where the
+	# ES3 recipe puts ES3's Faraday geometry) [1,+i] is sigma-, and the
+	# rotation is the opposite. It used to keep the +z sign there, opposite to
+	# psi. phiPlus and phiMinus stay the sigma+ and sigma- phases. A reversed
+	# pass needs nothing: its field, in lab components, is the forward pass's.
+	if 'Btheta' in list(p_dict.keys()):
+		Btheta = p_dict['Btheta']
+	else:
+		Btheta = p_dict_defaults['Btheta']
+	phi = (1.0 if np.cos(Btheta) >= 0 else -1.0) * (phiMinus-phiPlus)/2.0
 	##
 	
-	#Stokes parameters
+	#Stokes parameters, computed in field_outputs above
+	S1, S2, S3 = fo['S1'], fo['S2'], fo['S3']
+	Ix, Iy, I_P45, I_M45, Il, Ir = (fo[k] for k in ('Ix', 'Iy', 'I_P45', 'I_M45', 'Il', 'Ir'))
 
-	#S1#
-	Ex = np.array(JM.HorizPol_xy * E_out[:2])
-	Ix =  (Ex * Ex.conjugate()).sum(axis=0) / I_in
-	Ey =  np.array(JM.VertPol_xy * E_out[:2])
-	Iy =  (Ey * Ey.conjugate()).sum(axis=0) / I_in
-	
-	S1 = Ix - Iy
-	
-	#S2#
-	E_P45 =  np.array(JM.LPol_P45_xy * E_out[:2])
-	E_M45 =  np.array(JM.LPol_M45_xy * E_out[:2])
-	I_P45 = (E_P45 * E_P45.conjugate()).sum(axis=0) / I_in
-	I_M45 = (E_M45 * E_M45.conjugate()).sum(axis=0) / I_in
-	
-	S2 = I_P45 - I_M45
-	
-	#S3#
-	# change to circular basis
-	E_out_lrz = BC.xyz_to_lrz(E_out)
-	El =  np.array(JM.CPol_L_lr * E_out_lrz[:2])
-	Er =  np.array(JM.CPol_R_lr * E_out_lrz[:2])
-	Il = (El * El.conjugate()).sum(axis=0) / I_in
-	Ir = (Er * Er.conjugate()).sum(axis=0) / I_in
-	
-	S3 = Ir - Il
-	
-	Ir = Ir.real
-	Il = Il.real
-	Ix = Ix.real
-	Iy = Iy.real
+	# [ES4] Generalised polarisation rotation angle (psi) and degree of linear
+	# polarisation (DoLP), from the fractional Stokes parameters.
+	#
+	# 'phi' above is a DISPERSION-ONLY quantity: (k L / 2)(Re nMinus - Re nPlus)
+	# ignores the imaginary parts entirely, so it keeps reporting a "rotation
+	# angle" even when strong circular dichroism near resonance has converted
+	# the light to (nearly) circular polarisation and no linear alignment
+	# exists to rotate.  psi is instead the polarisation-ellipse azimuth
+	# (Born & Wolf §1.4) computed from the full complex field propagation, so
+	# absorption and dispersion are both included.  In pure Faraday geometry
+	# the circular modes are exact eigenmodes and the azimuth is set by the
+	# phase difference alone, so psi == phi (mod pi) at ALL optical depths
+	# there, Btheta = 0 and pi alike (verified to 1e-12 in
+	# test_faraday_outputs): dichroism alters the ellipticity, not the
+	# azimuth -- what it destroys is the linear component itself, which DoLP
+	# tracks.  In oblique geometry phi is not the propagation phase difference
+	# at all and psi is the correct angle.  psi is returned as the principal
+	# value in (-pi/2, pi/2]; rotations beyond +-pi/2 wrap (unwrap with
+	# np.unwrap(2*psi)/2 if tracking a continuous scan).
+	#
+	# DoLP = sqrt(S1^2 + S2^2) (fractional Stokes, so already /S0) is the
+	# companion validity diagnostic: psi is physically meaningful only where
+	# DoLP is appreciable.  DoLP -> 0 marks exactly the dichroic regime where
+	# a rotation angle becomes unmeasurable.  For the coherent (fully
+	# polarised) fields propagated here, DoLP^2 + S3^2 = 1.
+	psi = 0.5 * np.arctan2(S2.real, S1.real)
+	DoLP = np.sqrt(S1.real**2 + S2.real**2)
 
 	## (Real part) refractive indices
 	#nMinus = nPlus.real
 	#nPlus = nMinus.real
 
 	## Absorption coefficients - again not a physically relevant quantity anymore since propagation is not as simple as k * Im(Chi) * L in a non-Faraday geometry
-	alphaPlus = 2.0*nMinus.imag*wavenumber
-	alphaMinus = 2.0*nPlus.imag*wavenumber
+	# [ES4 FIX] nPlus is now the sigma+ index, so alphaPlus no
+	# longer crosses over to nMinus: the values are unchanged
+	alphaPlus = 2.0*nPlus.imag*wavenumber
+	alphaMinus = 2.0*nMinus.imag*wavenumber
 	alphaZ = 2.0*nZ.imag*wavenumber
 
 	# Refractive/Group indices for left/right/z also no longer make any sense
@@ -950,11 +1381,27 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 	#GIMinus = nPlus.real + (X + transition.v0*1.0e-6)*dnWRTv
 		
 	# Valid outputs
-	op = {'S0':S0, 'S1':S1, 'S2':S2, 'S3':S3, 'Ix':Ix, 'Iy':Iy, 'Il':Il, 'Ir':Ir, 
-				'I_P45':I_P45, 'I_M45':I_M45, 
-				'alphaPlus':alphaPlus, 'alphaMinus':alphaMinus, 'alphaZ':alphaZ, 
-				'E_out':E_out, 
-				'Chi':Chi, 'ChiPlus':ChiPlus, 'ChiMinus':ChiMinus, 'ChiZ':ChiZ
+	op = {'S0':S0, 'S1':S1, 'S2':S2, 'S3':S3, 'Ix':Ix, 'Iy':Iy, 'Il':Il, 'Ir':Ir,
+				'I_P45':I_P45, 'I_M45':I_M45,
+				'alphaPlus':alphaPlus, 'alphaMinus':alphaMinus, 'alphaZ':alphaZ,
+				'E_out':E_out,
+				'Chi':Chi, 'ChiPlus':ChiPlus, 'ChiMinus':ChiMinus, 'ChiZ':ChiZ,
+				# [ES4] TransLeft/TransRight added to output dict (were computed but not accessible in ES3)
+				'TransLeft': TransLeft, 'TransRight': TransRight,
+				# [ES4] nPlus/nMinus/phi/phiPlus/phiMinus added to output dict (were
+				# computed but not accessible in ES3, so requesting them raised
+				# KeyError). Like TransLeft/alphaPlus above, these are circular-basis
+				# quantities only physically meaningful in Faraday geometry (Btheta=0);
+				# the code computes them unconditionally. See output_list() for the
+				# Plus/Minus-vs-sigma naming caveat.
+				'nPlus': nPlus, 'nMinus': nMinus,
+				'phi': phi, 'phiPlus': phiPlus, 'phiMinus': phiMinus,
+				# [ES4] Stokes-based rotation angle + linear-polarisation degree
+				# (dichroism-aware; valid in any geometry — see comment above)
+				'psi': psi, 'DoLP': DoLP,
+				# [ES4] Poynting-flux transmission; requires
+				# use_non_orthogonal=True and excludes window Fresnel factors
+				'S0_P': S0_P
 			}
 	
 	if (outputs == None) or ('All' in outputs):
@@ -967,29 +1414,54 @@ def get_spectra(X, E_in, p_dict, outputs=None):
 	
 def output_list():
 	""" Helper method that returns a list of all possible variables that get_spectra can return """
+	# [ES4 FIX] 'Plus'/'Minus' on Chi/n/phi/alpha is the sigma label:
+	# ChiPlus/nPlus/phiPlus/alphaPlus are the sigma+ (delta m = +1) manifold, which
+	# a [1,+i]/sqrt2 field drives when B is along +z. ES3, and the 4.0.0 alphas,
+	# returned the sigma- quantities under the 'Plus' names (except alphaPlus).
+	# Il/Ir and S3 follow Born & Wolf: Il is the [1,+i]/sqrt2 component, which is
+	# left-circular for fields varying as exp(i(kz - wt)). See Sec. 5 of the manual.
+	# [ES4] All are in lab components, about +z, so on a reversed
+	# pass the left and right are reversed for the returning beam.
 	tstr = " \
 	All possible outputs from the get_spectra method: \n\n\
 	Variable Name		Description \n \
 	S0						Total transmission through the cell (Ix + Iy) \n\
-	S1						Stokes parameter - Ix - Iy \n\
-	S2						Stokes parameter - I_45 - I_-45 \n\
-	S3						Stokes parameter - I- - I+ \n\
-	TransLeft			Transmission of only left-circularly polarised light \n\
-	TransRight			Transmission of only right-circularly polarised light \n\
-	ChiPlus				Complex susceptibility of left-circularly polarised light \n\
-	ChiMinus				Complex susceptibility of right-circularly polarised light \n\
-	nPlus					Complex Refractive index of left-circularly polarised light \n\
-	nMinus				Complex Refractive index of right-circularly polarised light \n\
-	phiPlus				Rotation of linear polarisation caused by sigma-plus transitions \n\
-	phiMinus				Rotation of linear polarisation caused by sigma-minus transitions \n\
-	phi					Total rotation of linear polarisation \n\
+	S1						Stokes parameter (Ix - Iy)/S0 \n\
+	S2						Stokes parameter (I_45 - I_-45)/S0 \n\
+	S3						Stokes parameter (Ir - Il)/S0: positive when right-circular light dominates (Born & Wolf). \n\
+								Il, Ir and S3 are about the lab +z axis: on a reversed pass (wavevector_dirn=-1), \n\
+								S3 > 0 is left-circular for the returning beam \n\
+	TransLeft			Single-mode transmission exp(-2 Im(nPlus) k L) of the sigma+ mode [the [1,+i]/sqrt2 (left-circular) \n\
+								mode for B along +z; Faraday geometry only] \n\
+	TransRight			Single-mode transmission exp(-2 Im(nMinus) k L) of the sigma- mode [the [1,-i]/sqrt2 \n\
+								(right-circular) mode for B along +z; Faraday geometry only] \n\
+	S0_P					Poynting-flux (physical power) transmission of the bare vapour column. \n\
+							Requires use_non_orthogonal=True; excludes window Fresnel factors; \n\
+							bounded by 1 for the passive medium even at mode degeneracies where \n\
+							|E|^2-based S0 is not proportional to transported power \n\
+	ChiPlus				Complex susceptibility of the sigma+ (delta m=+1) manifold [governs [1,+i]/sqrt2 light for B along +z] \n\
+	ChiMinus				Complex susceptibility of the sigma- (delta m=-1) manifold [governs [1,-i]/sqrt2 light for B along +z] \n\
+	nPlus					Complex refractive index sqrt(1+ChiPlus) of the sigma+ manifold [Faraday geometry only] \n\
+	nMinus				Complex refractive index sqrt(1+ChiMinus) of the sigma- manifold [Faraday geometry only] \n\
+	phiPlus				Single-pass phase k Re(nPlus) L of the sigma+ mode [Faraday geometry only] \n\
+	phiMinus				Single-pass phase k Re(nMinus) L of the sigma- mode [Faraday geometry only] \n\
+	phi					Net Faraday rotation of linear polarisation, positive from x towards y: (phiMinus - phiPlus)/2 \n\
+									for B along +z, and its negative for B along -z [Faraday geometry only]. \n\
+								DISPERSION-ONLY: ignores circular dichroism, so it is not a measurable \n\
+								rotation near resonance at high optical depth — use psi (and check DoLP) there \n\
+	psi					Polarisation-ellipse azimuth 0.5*arctan2(S2, S1), from the full complex field \n\
+								propagation (includes dichroism). Equals phi mod pi at weak dichroism; principal \n\
+								value in (-pi/2, pi/2]. Only meaningful where DoLP is appreciable \n\
+	DoLP					Degree of linear polarisation sqrt(S1^2 + S2^2) (fractional, in [0, 1]). \n\
+								DoLP -> 0 flags where a linear rotation angle ceases to exist (dichroism \n\
+								has made the light circular); DoLP^2 + S3^2 = 1 for the coherent fields here \n\
 	Ix						Intensity of light transmitted through a linear polariser aligned with the x-axis \n\
 	Iy						Intensity of light transmitted through a linear polariser aligned with the y-axis \n\
-	Ir						Intensity of right-circularly polarised light\n\
-	Il						Intensity of left-circularly polarised light\n\
-	alphaPlus			Absorption coefficient due to sigma-plus transitions \n\
-	alphaMinus			Absorption coefficient due to sigma-minus transitions \n\
-	GIMinus				Group index of left-circularly polarised light \n\
-	GIPlus				Group index of right-circularly polarised light \n\
-	"	
+	Ir						Intensity of the [1,-i]/sqrt2 component: right-circular (Born & Wolf), clockwise for an \n\
+								observer facing the source [lab components: for a reversed pass, left-circular] \n\
+	Il						Intensity of the [1,+i]/sqrt2 component: left-circular (Born & Wolf) [lab components, as Ir] \n\
+	alphaPlus			Absorption coefficient 2 Im(nPlus) k of the sigma+ manifold \n\
+	alphaMinus			Absorption coefficient 2 Im(nMinus) k of the sigma- manifold \n\
+	alphaZ				Absorption coefficient 2 Im(nZ) k of the pi (delta m=0) manifold \n\
+	"
 	print(tstr)

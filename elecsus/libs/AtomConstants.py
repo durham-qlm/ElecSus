@@ -23,11 +23,10 @@ Called by EigenSystem.py
 Last updated 2018-07-04 MAZ
 """
 # py 2.7 compatibility
-from __future__ import (division, print_function, absolute_import)
 
 
 from numpy import pi, sqrt
-from FundamentalConstants import *
+from .FundamentalConstants import *
 
 class IdealAtom:
 	""" Constants for an ideal atom with no hyperfine structure, and only electron spin """
@@ -257,7 +256,10 @@ class K40_D2:
 class K41_D1:
     """Constants relating to the potassium-41 atom and the D1 transition"""
     #Hyperfine constants in units of MHz
-    Ap = 127.0069352
+    # [ES4 FIX] A(4P1/2), measured (Tiecke, "Properties of
+    # Potassium"). It was 127.0069352, the ground state's A (K41.As), which
+    # made the P1/2 hyperfine splitting 8.3 times too large.
+    Ap = 15.245
     Bp = 0.0
     IsotopeShift = -219.625
 

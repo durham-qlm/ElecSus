@@ -1,0 +1,22 @@
+name: elecsus4
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.10,<3.13
+  - numpy>=1.24
+  - scipy>=1.10
+  - matplotlib>=3.7
+  - lmfit>=1.3.4         # 1.3+ for numpy 2.x; 1.3.0-1.3.3 warn "UFloat ... std_dev==0" in fits
+  - cycler>=0.11
+  - pip
+  - pytest>=8            # test suite (python -m pytest from repo root)
+  - notebook>=7          # the `jupyter notebook` launcher for the tutorials in Notebooks/
+  - nbconvert>=7         # execute/render notebooks (also used to validate them)
+  # Not here: reportlab, jupyterlab and sympy are in the 'dev' extra of
+  # pyproject.toml (pip install -e ".[dev]") for those who regenerate reports
+  # or the ES3 reference.
+  - pip:
+    - dash>=2.17
+    - dash-bootstrap-components>=1.6
+    - plotly>=5.22

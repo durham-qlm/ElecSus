@@ -22,7 +22,6 @@ JK
 Last updated 2018-02-19 JK
 """
 # py 2.7 compatibility
-from __future__ import (division, print_function, absolute_import)
 
 
 import numpy as np

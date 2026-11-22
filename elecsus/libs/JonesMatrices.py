@@ -23,27 +23,26 @@ in l/r basis, l = (1,0), r = (0,1)
 Last updated 2018-02-19 JK
 """
 # py 2.7 compatibility
-from __future__ import (division, print_function, absolute_import)
 
 
 import numpy as np
 
 # Horizontal polarisers (P_x)
-HorizPol_xy = np.matrix([[1,0],[0,0]])
-HorizPol_lr = 1./2 * np.matrix([[1,1],[1,1]])
+HorizPol_xy = np.array([[1,0],[0,0]])
+HorizPol_lr = 1./2 * np.array([[1,1],[1,1]])
 
 # Vertical polarisers (P_y)
-VertPol_xy = np.matrix([[0,0],[0,1]])
-VertPol_lr = 1./2 * np.matrix([[1,-1],[-1,1]])
+VertPol_xy = np.array([[0,0],[0,1]])
+VertPol_lr = 1./2 * np.array([[1,-1],[-1,1]])
 
 # Linear polarisers at plus 45 degrees wrt x-axis
-LPol_P45_xy = 1./2 * np.matrix([[1,1],[1,1]])
-LPol_P45_lr = 1./2 * np.matrix([[1,-1.j],[1.j,1]])
+LPol_P45_xy = 1./2 * np.array([[1,1],[1,1]])
+LPol_P45_lr = 1./2 * np.array([[1,-1.j],[1.j,1]])
 
 # Linear polarisers at minus 45 degrees wrt x-axis
-LPol_M45_xy = 1./2 * np.matrix([[1,-1],[-1,1]])
-LPol_M45_lr = 1./2 * np.matrix([[1,1.j],[-1.j,1]])
+LPol_M45_xy = 1./2 * np.array([[1,-1],[-1,1]])
+LPol_M45_lr = 1./2 * np.array([[1,1.j],[-1.j,1]])
 
 # Left Circular polariser (in circular basis only)
-CPol_L_lr = np.matrix([[1,0],[0,0]])
-CPol_R_lr = np.matrix([[0,0],[0,1]])
+CPol_L_lr = np.array([[1,0],[0,0]])
+CPol_R_lr = np.array([[0,0],[0,1]])

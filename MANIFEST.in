@@ -1,4 +1,5 @@
 include *.txt
-recursive-include elecsus/docs *.pdf
-recursive-include elecsus/images *.ico *.png
-recursive-include elecsus/sample_data *.csv
+include AUTHORS CHANGELOG.md CITATION.cff .zenodo.json
+recursive-include elecsus/sample_data *.csv *.md
+include elecsus/tests/golden/es3_reference.npz
+recursive-include elecsus/assets *.css *.woff2 *.txt *.md
